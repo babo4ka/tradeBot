@@ -2,10 +2,10 @@ package tradeBot.invest;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.ta4j.core.BaseStrategy;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
-import tradeBot.analyze.StrategyBuilder;
+import tradeBot.analyze.MAStrategyBuilder;
 import tradeBot.analyze.StrategyRun;
+import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
 import tradeBot.visualize.StrategyVisualizer;
 
 import java.time.ZonedDateTime;
@@ -17,33 +17,33 @@ public class Test {
         ApplicationContext context = new AnnotationConfigApplicationContext("tradeBot");
 
         SharesDataLoader dl = context.getBean(SharesDataLoader.class);
-        StrategyBuilder sb = context.getBean(StrategyBuilder.class);
+        MAStrategyBuilder sb = context.getBean(MAStrategyBuilder.class);
         StrategyRun sr = context.getBean(StrategyRun.class);
         StrategyVisualizer sv = context.getBean(StrategyVisualizer.class);
 
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime from = now.minusMonths(6);
 
-        String ticker = "SBERP";
+        String ticker = "PLZL";
 
         var candles = dl.loadCandlesData(ticker, from.toInstant(), now.toInstant());
         var series = dl.getBarSeries(ticker, candles, CandleInterval.CANDLE_INTERVAL_DAY);
 
 
-        List<StrategyBuilder.StrategyData> strategies = new ArrayList<>();
+        List<MACrossoverWithRSIStrategyData> strategies = new ArrayList<>();
 
 
         for(int i=1; i<24; i+=2){
             for(int j=20;j<200;j+=4){
-                strategies.add(sb.maCrossoverStrategyWithRSI(series, i, j, 14));
+                strategies.add(sb.smaCrossoverStrategyWithRSI(series, i, j, 14));
             }
         }
 
-        var strategy = sr.chooseBetterStrategyByProfit(series, strategies);
+        var strategy = sr.chooseBetterMAStrategyByProfit(series, strategies);
 
-        System.out.println(strategy.getShortMaCount() + " " + strategy.getLongMaCount() + " " + strategy.getRsiCount());
+        System.out.println(strategy.getShortMa().getCountOfUnstableBars() + " " + strategy.getLongMA().getCountOfUnstableBars() + " " + strategy.getRsiIndicator().getCountOfUnstableBars());
 
-        sv.visualizeStrategy("Стратегия для " + ticker, series, strategy.getRecord(), strategy.getShortEma(), strategy.getLongEMA());
+        sv.visualizeMAStrategy("Стратегия для " + ticker, series, strategy.getRecord(), strategy.getShortMa(), strategy.getLongMA());
 
         sr.run(series, strategy.getStrategy());
     }

@@ -7,13 +7,12 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.chart.title.LegendTitle;
-import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.data.xy.*;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
+import org.ta4j.core.Indicator;
 import org.ta4j.core.TradingRecord;
-import org.ta4j.core.indicators.averages.EMAIndicator;
+import org.ta4j.core.num.Num;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
@@ -24,11 +23,11 @@ import java.util.List;
 
 @Component
 public class StrategyVisualizer {
-    public void visualizeStrategy(String title, BarSeries series, TradingRecord record, EMAIndicator shortEma, EMAIndicator longEma){
+    public void visualizeMAStrategy(String title, BarSeries series, TradingRecord record, Indicator<Num> shortIndicator, Indicator<Num> longIndicator){
         OHLCDataset candleDataset = createCandleDataset(series);
 
-        XYDataset shortEmaDataset = createEMADataset(series, shortEma, "Short EMA");
-        XYDataset longEmaDataset = createEMADataset(series, longEma, "Long EMA");
+        XYDataset shortEmaDataset = createMADataset(series, shortIndicator, "Short MA");
+        XYDataset longEmaDataset = createMADataset(series, longIndicator, "Long MA");
 
         List<Integer> entryIndexes = new ArrayList<>();
         List<Integer> exitIndexes = new ArrayList<>();
@@ -40,8 +39,8 @@ public class StrategyVisualizer {
         }
 
 
-        XYDataset entryDataset = createTradeDataset(series, entryIndexes, "entry");
-        XYDataset exitDataset = createTradeDataset(series, exitIndexes, "exit");
+        XYDataset entryDataset = createTradeDataset(series, entryIndexes, "точки входа");
+        XYDataset exitDataset = createTradeDataset(series, exitIndexes, "точки выхода");
 
         JFreeChart chart = ChartFactory.createCandlestickChart(title, "time", "Price",
                 candleDataset, true);
@@ -54,13 +53,13 @@ public class StrategyVisualizer {
 
 
         plot.setDataset(1, shortEmaDataset);
-        XYLineAndShapeRenderer shortEmaRenderer = new XYLineAndShapeRenderer();
-        shortEmaRenderer.setSeriesPaint(0, Color.YELLOW);
+        XYLineAndShapeRenderer shortEmaRenderer = new XYLineAndShapeRenderer(true, false);
+        shortEmaRenderer.setSeriesPaint(0, Color.black);
         plot.setRenderer(1, shortEmaRenderer);
 
         plot.setDataset(2, longEmaDataset);
-        XYLineAndShapeRenderer longEmaRenderer = new XYLineAndShapeRenderer();
-        longEmaRenderer.setSeriesPaint(0, Color.pink);
+        XYLineAndShapeRenderer longEmaRenderer = new XYLineAndShapeRenderer(true, false);
+        longEmaRenderer.setSeriesPaint(0, Color.CYAN);
         plot.setRenderer(2, longEmaRenderer);
 
 
@@ -125,7 +124,7 @@ public class StrategyVisualizer {
     }
 
 
-    private XYDataset createEMADataset(BarSeries series, EMAIndicator indicator, String name){
+    private XYDataset createMADataset(BarSeries series, Indicator<Num> indicator, String name){
         XYSeries maSeries = new XYSeries(name);
 
         for(int i=0; i<series.getBarCount();i++){
@@ -133,6 +132,7 @@ public class StrategyVisualizer {
                 var bar = series.getBar(i);
                 Instant time = bar.getEndTime();
                 long millis = time.toEpochMilli();
+
 
                 maSeries.add(millis, indicator.getValue(i).doubleValue());
             }
@@ -161,6 +161,5 @@ public class StrategyVisualizer {
         dataset.addSeries(tradeSeries);
         return dataset;
     }
-
 
 }

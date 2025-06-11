@@ -7,6 +7,8 @@ import org.ta4j.core.BaseStrategy;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.backtest.BarSeriesManager;
 import org.ta4j.core.criteria.pnl.ProfitCriterion;
+import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
+import tradeBot.analyze.entities.StrategyData;
 
 import java.util.List;
 
@@ -24,8 +26,8 @@ public class StrategyRun {
         System.out.println(strategy.shouldExit(series.getEndIndex(), record));
     }
 
-    public StrategyBuilder.StrategyData chooseBetterStrategyByProfit(BarSeries series, List<StrategyBuilder.StrategyData> strategies){
-        StrategyBuilder.StrategyData best = null;
+    public MACrossoverWithRSIStrategyData chooseBetterMAStrategyByProfit(BarSeries series, List<MACrossoverWithRSIStrategyData> strategies){
+        MACrossoverWithRSIStrategyData best = null;
         TradingRecord bestRecord = null;
         BarSeriesManager manager = new BarSeriesManager(series);
         AnalysisCriterion profitCriterion = new ProfitCriterion();
@@ -48,5 +50,12 @@ public class StrategyRun {
         assert best != null;
         best.setRecord(bestRecord);
         return best;
+    }
+
+    public void setTradingRecord(BarSeries series, StrategyData strategyData){
+        BarSeriesManager manager = new BarSeriesManager(series);
+        TradingRecord record = manager.run(strategyData.getStrategy());
+
+        strategyData.setRecord(record);
     }
 }

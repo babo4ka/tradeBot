@@ -9,6 +9,7 @@ import org.ta4j.core.num.DecimalNum;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.core.InvestApi;
+import tradeBot.invest.configs.InvestConfig;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,17 +18,28 @@ import java.util.List;
 
 @Component
 public class SharesDataLoader {
+
+    final InvestConfig config;
+
+    InvestApi api;
+
     @Autowired
-    InvestConfig config;
+    public SharesDataLoader(InvestConfig config){
+        this.config = config;
+        api = InvestApi.create(config.getSandboxToken());
+    }
 
     public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to){
-        InvestApi api = InvestApi.create(config.getSandboxToken());
+        //InvestApi api = InvestApi.create(config.getSandboxToken());
+
+        assert api != null;
 
         String figi = api.getInstrumentsService().findInstrument(ticker)
                 .join().stream()
                 .filter(i->i.getFigi().startsWith("BBG00"))
                 .filter(i->i.getInstrumentType().equals("share"))
                 .findFirst().orElseThrow().getFigi();
+
 
         return api.getMarketDataService().getCandles(figi,
                 from, to, CandleInterval.CANDLE_INTERVAL_DAY).join();

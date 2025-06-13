@@ -8,12 +8,13 @@ import tradeBot.analyze.StrategyRun;
 import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
 import tradeBot.visualize.StrategyVisualizer;
 
+import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Test {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         ApplicationContext context = new AnnotationConfigApplicationContext("tradeBot");
 
         SharesDataLoader dl = context.getBean(SharesDataLoader.class);

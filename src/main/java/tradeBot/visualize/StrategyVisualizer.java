@@ -1,29 +1,48 @@
 package tradeBot.visualize;
 
+import lombok.Getter;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartFrame;
+import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.*;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.Indicator;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.num.Num;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+
+@Getter
 @Component
+@Scope("singleton")
 public class StrategyVisualizer {
-    public void visualizeMAStrategy(String title, BarSeries series, TradingRecord record, Indicator<Num> shortIndicator, Indicator<Num> longIndicator){
+
+    private ByteArrayOutputStream chartOutput;
+
+    public void visualizeMAStrategy(
+            String title,
+            BarSeries series, TradingRecord record,
+            Indicator<Num> shortIndicator, Indicator<Num> longIndicator
+    ) throws IOException {
         OHLCDataset candleDataset = createCandleDataset(series);
 
         XYDataset shortEmaDataset = createMADataset(series, shortIndicator, "Short MA");
@@ -103,9 +122,19 @@ public class StrategyVisualizer {
         NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
         numberAxis.setAutoRangeIncludesZero(false);
 
-        ChartFrame frame = new ChartFrame("Технический анализ SBERP", chart);
-        frame.pack();
-        frame.setVisible(true);
+        BufferedImage image = chart.createBufferedImage(500, 200);
+        chartOutput = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", chartOutput);
+        chartOutput.close();
+    }
+
+
+    public ByteArrayOutputStream getMAStrategyPicture(String title,
+                                     BarSeries series, TradingRecord record,
+                                     Indicator<Num> shortIndicator, Indicator<Num> longIndicator) throws IOException {
+        visualizeMAStrategy(title, series, record, shortIndicator, longIndicator);
+
+        return chartOutput;
     }
 
     private OHLCDataset createCandleDataset(BarSeries series){

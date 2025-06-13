@@ -1,28 +1,37 @@
 package tradeBot.telegram.service;
 
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import tradeBot.invest.StrategiesSolutions;
+import tradeBot.visualize.StrategyVisualizer;
 
+import java.io.*;
+
+@Component
 public class Tets {
 
+    @Setter
     MsgSender sender;
 
-    public Tets(MsgSender sender){
-        this.sender = sender;
-    }
+    @Autowired
+    ApplicationContext context;
 
-
-    public void send() throws TelegramApiException {
-        ApplicationContext context = new AnnotationConfigApplicationContext("tradeBot/invest", "tradeBot/analyze");
-
+    public void send() throws TelegramApiException, IOException {
         StrategiesSolutions solutionsManager = context.getBean(StrategiesSolutions.class);
 
         var solutions = solutionsManager.sharesSolutions();
 
+
         for(var key: solutions.keySet()){
-            sender.send("По " + key + " " + solutions.get(key));
+            String solution = (String) solutions.get(key)[0];
+            ByteArrayOutputStream image = (ByteArrayOutputStream) solutions.get(key)[1];
+            InputFile file = new InputFile(new ByteArrayInputStream(image.toByteArray()), "file");
+            sender.send("По " + key + " " + solution, file);
         }
 
     }

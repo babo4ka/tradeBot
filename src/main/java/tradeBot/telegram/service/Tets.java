@@ -28,8 +28,8 @@ public class Tets {
 
 
         for(var key: solutions.keySet()){
-            String solution = (String) solutions.get(key)[0];
-            ByteArrayOutputStream image = (ByteArrayOutputStream) solutions.get(key)[1];
+            String solution = solutions.get(key).getFirst();
+            ByteArrayOutputStream image = solutions.get(key).getSecond();
             InputFile file = new InputFile(new ByteArrayInputStream(image.toByteArray()), "file");
             sender.send("По " + key + " " + solution, file);
         }

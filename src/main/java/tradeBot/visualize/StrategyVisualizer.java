@@ -2,8 +2,6 @@ package tradeBot.visualize;
 
 import lombok.Getter;
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartFrame;
-import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
@@ -22,9 +20,7 @@ import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Date;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -122,7 +118,7 @@ public class StrategyVisualizer {
         NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
         numberAxis.setAutoRangeIncludesZero(false);
 
-        BufferedImage image = chart.createBufferedImage(500, 200);
+        BufferedImage image = chart.createBufferedImage(1000, 500);
         chartOutput = new ByteArrayOutputStream();
         ImageIO.write(image, "png", chartOutput);
         chartOutput.close();

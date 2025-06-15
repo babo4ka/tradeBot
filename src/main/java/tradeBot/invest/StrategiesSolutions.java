@@ -9,8 +9,10 @@ import org.ta4j.core.backtest.BarSeriesManager;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import tradeBot.analyze.MAStrategyBuilder;
 import tradeBot.analyze.StrategyRun;
+import tradeBot.commonUtils.Pair;
 import tradeBot.visualize.StrategyVisualizer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
@@ -24,13 +26,13 @@ public class StrategiesSolutions {
     @Autowired
     ApplicationContext context;
 
-    public Map<String, Object[]> sharesSolutions() throws IOException {
+    public Map<String, Pair<String, ByteArrayOutputStream>> sharesSolutions() throws IOException {
         SharesDataLoader dataLoader = context.getBean(SharesDataLoader.class);
         MAStrategyBuilder strategyBuilder = context.getBean(MAStrategyBuilder.class);
 
         StrategyVisualizer strategyVisualizer = context.getBean(StrategyVisualizer.class);
 
-        Map<String, Object[]> solutions = new HashMap<>();
+        Map<String, Pair<String, ByteArrayOutputStream>> solutions = new HashMap<>();
 
         for(var ticker: tickers){
             ZonedDateTime now = ZonedDateTime.now();
@@ -45,8 +47,13 @@ public class StrategiesSolutions {
             TradingRecord record = manager.run(strategyData.getStrategy());
             var strategyPicture = strategyVisualizer.getMAStrategyPicture(ticker, barSeries, record, strategyData.getShortMa(), strategyData.getLongMA());
 
-            solutions.put(ticker, new Object[]{strategyData.getStrategy().shouldEnter(barSeries.getEndIndex(), record) ? "входим" :
-                    (strategyData.getStrategy().shouldExit(barSeries.getBeginIndex(), record) ? "выходим" : "ничего не делаем"), strategyPicture});
+
+            solutions.put(ticker, new Pair<>(
+                    strategyData.getStrategy().shouldEnter(barSeries.getEndIndex(), record) ? "входим" :
+                            (strategyData.getStrategy().shouldExit(barSeries.getBeginIndex(), record) ? "выходим" : "ничего не делаем"),
+                    strategyPicture
+            ));
+
 
             strategyVisualizer.visualizeMAStrategy(ticker, barSeries, record, strategyData.getShortMa(), strategyData.getLongMA());
         }

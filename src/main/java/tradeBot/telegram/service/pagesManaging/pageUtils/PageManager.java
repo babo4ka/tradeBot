@@ -1,33 +1,60 @@
 package tradeBot.telegram.service.pagesManaging.pageUtils;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
+import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseSolutionPage;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Component
 public class PageManager {
 
-    private final Map<String, Page> pages = new HashMap<>(){
+    @Autowired
+    ApplicationContext context;
 
-    };
+    private final Map<String, Page> pages = new HashMap<>();
+
+    @EventListener(ContextRefreshedEvent.class)
+    private void setupPages(){
+        pages.put("/chooseSolution", context.getBean(ChooseSolutionPage.class));
+    }
+
+    private String lastCalledPage;
 
     public List<PartialBotApiMethod<Message>> execute(Update update, String pageName){
+        if(!pageName.isEmpty()) lastCalledPage = pageName;
+        else pageName = lastCalledPage;
+
         return pages.get(pageName).execute(update);
     }
 
     public List<PartialBotApiMethod<Message>> executeWithArgs(Update update, String pageName, String...args){
+        if(!pageName.isEmpty()) lastCalledPage = pageName;
+        else pageName = lastCalledPage;
+
         return pages.get(pageName).executeWithArgs(update, args);
     }
 
     public List<PartialBotApiMethod<Message>> executeCallback(Update update, String pageName){
+        if(!pageName.isEmpty()) lastCalledPage = pageName;
+        else pageName = lastCalledPage;
+
         return pages.get(pageName).executeCallback(update);
     }
 
     public List<PartialBotApiMethod<Message>> executeCallbackWithArgs(Update update, String pageName, String...args){
+        if(!pageName.isEmpty()) lastCalledPage = pageName;
+        else pageName = lastCalledPage;
+
         return pages.get(pageName).executeCallbackWithArgs(update, args);
     }
 

@@ -14,8 +14,10 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
+import tradeBot.telegram.service.pagesManaging.pageUtils.PageManager;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -25,6 +27,9 @@ public class TradeBot extends TelegramLongPollingBot {
 
     @Autowired
     InstrumentsDataSender t;
+
+    @Autowired
+    PageManager pageManager;
 
 //    @EventListener(ContextRefreshedEvent.class)
 //    private void setupTets(){
@@ -38,18 +43,18 @@ public class TradeBot extends TelegramLongPollingBot {
 
     private void sendToMe(String text, InputFile file) throws TelegramApiException {
         MessageBuilder builder = new MessageBuilder();
-        execute(builder.createPhotoMessage(null, 268932900L, text, file));
+        execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file));
     }
 
     private void sendMessageToChooseSolutions(List<String> tickers) throws TelegramApiException {
-        MessageBuilder messageBuilder = new MessageBuilder();
-        InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
+        List<SendMessage> messages = pageManager.executeWithArgs(null,
+                "/chooseSolution",
+                tickers.toArray(new String[0]))
+                .stream().map(e -> (SendMessage)e).toList();
 
-        for(var ticker: tickers){
-            keyboardBuilder = keyboardBuilder.addButton(ticker, "/solution " + ticker).nextRow();
+        for(var msg: messages){
+            execute(msg);
         }
-
-        execute(messageBuilder.createTextMessage(keyboardBuilder.build(), 268932900L, "Решения по тикерам"));
     }
 
 

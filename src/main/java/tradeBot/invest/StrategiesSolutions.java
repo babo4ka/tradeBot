@@ -21,8 +21,6 @@ import java.util.Map;
 @Component
 public class StrategiesSolutions {
 
-    String [] tickers = {"SBERP", "TATNP", "MOEX", "GAZP", "PIKK"};
-
     @Autowired
     ApplicationContext context;
 
@@ -34,7 +32,7 @@ public class StrategiesSolutions {
 
         Map<String, Pair<String, ByteArrayOutputStream>> solutions = new HashMap<>();
 
-        for(var ticker: tickers){
+        for(var ticker: TickersList.tickers){
             ZonedDateTime now = ZonedDateTime.now();
             ZonedDateTime from = now.minusYears(1);
 

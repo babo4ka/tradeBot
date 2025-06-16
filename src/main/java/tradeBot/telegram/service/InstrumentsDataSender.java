@@ -34,6 +34,6 @@ public class InstrumentsDataSender {
             everyInstrumentsSender.send("По " + key + " " + solution, file);
         }
 
-        commonSender.send(solutions.keySet().stream().toList());
+        commonSender.send(solutions.keySet().toArray(new String[0]));
     }
 }

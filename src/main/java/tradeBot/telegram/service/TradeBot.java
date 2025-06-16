@@ -5,18 +5,22 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import tradeBot.invest.TickersList;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.PageManager;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -46,10 +50,10 @@ public class TradeBot extends TelegramLongPollingBot {
         execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file));
     }
 
-    private void sendMessageToChooseSolutions(List<String> tickers) throws TelegramApiException {
+    private void sendMessageToChooseSolutions(String[] tickers) throws TelegramApiException {
         List<SendMessage> messages = pageManager.executeWithArgs(null,
                 "/chooseSolution",
-                tickers.toArray(new String[0]))
+                tickers)
                 .stream().map(e -> (SendMessage)e).toList();
 
         for(var msg: messages){
@@ -80,7 +84,11 @@ public class TradeBot extends TelegramLongPollingBot {
         if(update.hasMessage()){
             processMessage(update);
         }else if(update.hasCallbackQuery()){
-            processCallback(update);
+            try {
+                processCallback(update);
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -91,8 +99,29 @@ public class TradeBot extends TelegramLongPollingBot {
     }
 
 
-    private void processCallback(Update update){
-        System.out.println("cllbck");
-        System.out.println(update.getCallbackQuery().getData());
+    private void processCallback(Update update) throws TelegramApiException {
+        String[] data = update.getCallbackQuery().getData().split(" ");
+        String page = "";
+        String[] args;
+
+        if(data[0].startsWith("/")){
+            page = data[0];
+            args = Arrays.copyOfRange(data, 1, data.length);
+        }else{
+            args = data;
+        }
+
+        List<PartialBotApiMethod<Message>> messages;
+
+        if(args.length == 0){
+            messages = pageManager.executeCallback(update, page);
+        }else{
+            messages = pageManager.executeCallbackWithArgs(update, page, args);
+        }
+
+        for(var message: messages){
+            if(message instanceof SendMessage) execute((SendMessage) message);
+            else if(message instanceof SendPhoto) execute((SendPhoto) message);
+        }
     }
 }

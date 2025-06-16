@@ -7,5 +7,5 @@ import java.util.List;
 @FunctionalInterface
 public interface SenderWithStringList {
 
-    void send(List<String> strings) throws TelegramApiException;
+    void send(String[] strings) throws TelegramApiException;
 }

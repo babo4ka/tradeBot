@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseSolutionPage;
+import tradeBot.telegram.service.pagesManaging.pages.solutionPage.SolutionPage;
 
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ public class PageManager {
     @EventListener(ContextRefreshedEvent.class)
     private void setupPages(){
         pages.put("/chooseSolution", context.getBean(ChooseSolutionPage.class));
+        pages.put("/solution", context.getBean(SolutionPage.class));
     }
 
     private String lastCalledPage;

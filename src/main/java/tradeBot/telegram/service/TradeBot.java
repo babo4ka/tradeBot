@@ -32,8 +32,10 @@ public class TradeBot extends TelegramLongPollingBot {
     PageManager pageManager;
 
     @EventListener(ContextRefreshedEvent.class)
-    private void setupTets() throws TelegramApiException, IOException {
-        instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
+    private void setup() throws TelegramApiException, IOException {
+        //instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
+        instrumentsDataSender.setEveryInstrumentsSender(this::sendToMe);
+        instrumentsDataSender.setCommonSender(this::sendMessageToChooseSolutions);
     }
 
     public TradeBot(BotConfig config){
@@ -46,11 +48,16 @@ public class TradeBot extends TelegramLongPollingBot {
         execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file));
     }
 
-    private void sendMessageToChooseSolutions(String[] tickers) throws TelegramApiException {
-        System.out.println(Arrays.toString(tickers));
-        List<SendMessage> messages = pageManager.executeWithArgs(null,
-                "/chooseSolution",
-                tickers)
+    private void sendMessageToChooseSolutions(String[] tickers, double[] prices) throws TelegramApiException {
+        String[] args = new String[tickers.length];
+
+        for(int i=0;i<tickers.length;i++){
+            args[i] = tickers[i] + "-" + prices[i];
+        }
+
+
+        List<SendMessage> messages = pageManager.execute(null,
+                "/chooseSolution")
                 .stream().map(e -> (SendMessage)e).toList();
 
         for(var msg: messages){

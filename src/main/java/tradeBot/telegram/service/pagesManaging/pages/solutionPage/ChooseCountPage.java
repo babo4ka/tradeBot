@@ -50,10 +50,7 @@ public class ChooseCountPage implements Page {
         InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
         MessageBuilder messageBuilder = new MessageBuilder();
 
-        keyboardBuilder = keyboardBuilder.addButton("Назад", "/chooseSolution " + Arrays.toString(TickersList.tickers)
-                .replaceAll("\\[", "")
-                .replaceAll("]", "")
-                .replaceAll(",", "")).nextRow();
+        keyboardBuilder = keyboardBuilder.addButton("Назад", "/chooseSolution").nextRow();
         messages.add(messageBuilder.createTextMessage(keyboardBuilder.build(), config.getOwnerId(), "Вход на " + args[0] + " позиций по " + currentTicker));
 
         return messages.stream().map(e -> (PartialBotApiMethod<Message>) e).toList();

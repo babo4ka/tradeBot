@@ -40,7 +40,6 @@ public class SharesDataLoader {
                 .filter(i->i.getInstrumentType().equals("share"))
                 .findFirst().orElseThrow().getFigi();
 
-
         return api.getMarketDataService().getCandles(figi,
                 from, to, CandleInterval.CANDLE_INTERVAL_DAY).join();
     }
@@ -68,5 +67,20 @@ public class SharesDataLoader {
         }
 
         return series;
+    }
+
+
+    public double getInstrumentPrice(String ticker){
+        assert api != null;
+
+        String figi = api.getInstrumentsService().findInstrument(ticker)
+                .join().stream()
+                .filter(i->i.getFigi().startsWith("BBG00"))
+                .filter(i->i.getInstrumentType().equals("share"))
+                .findFirst().orElseThrow().getFigi();
+
+        var price = api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
+
+        return price.getUnits() + price.getNano()/1e9;
     }
 }

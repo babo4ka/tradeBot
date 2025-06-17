@@ -10,6 +10,7 @@ import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import tradeBot.analyze.MAStrategyBuilder;
 import tradeBot.analyze.StrategyRun;
 import tradeBot.commonUtils.Pair;
+import tradeBot.commonUtils.Triple;
 import tradeBot.visualize.StrategyVisualizer;
 
 import java.io.ByteArrayOutputStream;
@@ -24,13 +25,13 @@ public class StrategiesSolutions {
     @Autowired
     ApplicationContext context;
 
-    public Map<String, Pair<String, ByteArrayOutputStream>> sharesSolutions() throws IOException {
+    public Map<String, Triple<String, ByteArrayOutputStream, Double>> sharesSolutions() throws IOException {
         SharesDataLoader dataLoader = context.getBean(SharesDataLoader.class);
         MAStrategyBuilder strategyBuilder = context.getBean(MAStrategyBuilder.class);
 
         StrategyVisualizer strategyVisualizer = context.getBean(StrategyVisualizer.class);
 
-        Map<String, Pair<String, ByteArrayOutputStream>> solutions = new HashMap<>();
+        Map<String, Triple<String, ByteArrayOutputStream, Double>> solutions = new HashMap<>();
 
         for(var ticker: TickersList.tickers){
             ZonedDateTime now = ZonedDateTime.now();
@@ -46,10 +47,11 @@ public class StrategiesSolutions {
             var strategyPicture = strategyVisualizer.getMAStrategyPicture(ticker, barSeries, record, strategyData.getShortMa(), strategyData.getLongMA());
 
 
-            solutions.put(ticker, new Pair<>(
+            solutions.put(ticker, new Triple<>(
                     strategyData.getStrategy().shouldEnter(barSeries.getEndIndex(), record) ? "входим" :
                             (strategyData.getStrategy().shouldExit(barSeries.getBeginIndex(), record) ? "выходим" : "ничего не делаем"),
-                    strategyPicture
+                    strategyPicture,
+                    dataLoader.getInstrumentPrice(ticker)
             ));
 
 

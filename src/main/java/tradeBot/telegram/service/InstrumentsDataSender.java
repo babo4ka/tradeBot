@@ -3,6 +3,8 @@ package tradeBot.telegram.service;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -13,17 +15,21 @@ import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextNFile;
 import java.io.*;
 
 @Component
+@EnableScheduling
 public class InstrumentsDataSender {
 
     @Setter
-    SenderWithTextNFile sender;
+    SenderWithTextNFile everyInstrumentsSender;
+    @Setter
+    SenderWithStringList commonSender;
+
 
     @Autowired
-    ApplicationContext context;
+    StrategiesSolutions solutionsManager;
 
-    public void send(SenderWithTextNFile everyInstrumentsSender, SenderWithStringList commonSender) throws TelegramApiException, IOException {
-        StrategiesSolutions solutionsManager = context.getBean(StrategiesSolutions.class);
-
+    //@Scheduled(cron = "0 * * * * ?")
+    @Scheduled(fixedDelay = 60000)
+    public void send() throws TelegramApiException, IOException {
         var solutions = solutionsManager.sharesSolutions();
 
 
@@ -34,6 +40,14 @@ public class InstrumentsDataSender {
             everyInstrumentsSender.send("По " + key + " " + solution, file);
         }
 
-        commonSender.send(solutions.keySet().toArray(new String[0]));
+        String[] tickers = solutions.keySet().toArray(new String[0]);
+        double[] prices = new double[tickers.length];
+
+        for(int i=0;i<tickers.length;i++){
+            prices[i] = solutions.get(tickers[i]).getThird();
+        }
+
+
+        commonSender.send(solutions.keySet().toArray(new String[0]), prices);
     }
 }

@@ -9,9 +9,11 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
+import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseCountPage;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseSolutionPage;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.SolutionPage;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ public class PageManager {
     private void setupPages(){
         pages.put("/chooseSolution", context.getBean(ChooseSolutionPage.class));
         pages.put("/solution", context.getBean(SolutionPage.class));
+        pages.put("/chooseCount", context.getBean(ChooseCountPage.class));
     }
 
     private String lastCalledPage;

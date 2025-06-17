@@ -21,9 +21,18 @@ public class ChooseSolutionPage implements Page {
 
     @Override
     public List<PartialBotApiMethod<Message>> executeWithArgs(Update update, String... args) {
+        return getMessagesWithArgs(update, args);
+    }
+
+    @Override
+    public List<PartialBotApiMethod<Message>> executeCallbackWithArgs(Update update, String... args) {
+        return getMessagesWithArgs(update, args);
+    }
+
+
+    private List<PartialBotApiMethod<Message>> getMessagesWithArgs(Update update, String... args){
         MessageBuilder messageBuilder = new MessageBuilder();
         InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
-
         for(var ticker: args){
             keyboardBuilder = keyboardBuilder.addButton(ticker, "/solution " + ticker).nextRow();
         }

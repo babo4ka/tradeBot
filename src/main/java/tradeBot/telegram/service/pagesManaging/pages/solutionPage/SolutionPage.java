@@ -29,11 +29,11 @@ public class SolutionPage implements Page {
 
 
         if(args.length == 1){
-            keyboardBuilder = keyboardBuilder.addButton("Назад", "/chooseSolution" + Arrays.toString(TickersList.tickers)
+            keyboardBuilder = keyboardBuilder.addButton("Назад", "/chooseSolution " + Arrays.toString(TickersList.tickers)
                     .replaceAll("\\[", "")
                     .replaceAll("]", "")
                     .replaceAll(",", ""))
-                    .addButton("Вход", "/countChoose").nextRow();
+                    .addButton("Вход", "/chooseCount " + args[0]).nextRow();
 
             messages.add(messageBuilder.createTextMessage(keyboardBuilder.build(), config.getOwnerId(), "Решение по " + args[0]));
         }

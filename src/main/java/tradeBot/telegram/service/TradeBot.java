@@ -11,16 +11,12 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import tradeBot.invest.TickersList;
 import tradeBot.telegram.configs.BotConfig;
-import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.PageManager;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,15 +26,15 @@ public class TradeBot extends TelegramLongPollingBot {
     final BotConfig config;
 
     @Autowired
-    InstrumentsDataSender t;
+    InstrumentsDataSender instrumentsDataSender;
 
     @Autowired
     PageManager pageManager;
 
-//    @EventListener(ContextRefreshedEvent.class)
-//    private void setupTets(){
-//        t.setSender(this::sendToMe);
-//    }
+    @EventListener(ContextRefreshedEvent.class)
+    private void setupTets() throws TelegramApiException, IOException {
+        instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
+    }
 
     public TradeBot(BotConfig config){
         this.config = config;
@@ -51,6 +47,7 @@ public class TradeBot extends TelegramLongPollingBot {
     }
 
     private void sendMessageToChooseSolutions(String[] tickers) throws TelegramApiException {
+        System.out.println(Arrays.toString(tickers));
         List<SendMessage> messages = pageManager.executeWithArgs(null,
                 "/chooseSolution",
                 tickers)
@@ -74,32 +71,48 @@ public class TradeBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         //System.out.println(update.getMessage().getChatId());
-        try {
-            t.send(this::sendToMe, this::sendMessageToChooseSolutions);
-        } catch (TelegramApiException | IOException e) {
-            throw new RuntimeException(e);
-        }
 
-
-        if(update.hasMessage()){
-            processMessage(update);
-        }else if(update.hasCallbackQuery()){
-            try {
+        try{
+            if(update.hasMessage()){
+                processMessage(update);
+            }else if(update.hasCallbackQuery()){
                 processCallback(update);
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
             }
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
         }
     }
 
 
-    private void processMessage(Update update){
-        System.out.println("msg");
-        System.out.println(update.getMessage().getText());
+    private void processMessage(Update update) throws TelegramApiException {
+        System.out.println("Message: " + update.getMessage().getText());
+
+        String[] data = update.getMessage().getText().split(" ");
+        String page = "";
+        String[] args;
+
+        if(data[0].startsWith("/")){
+            page = data[0];
+            args = Arrays.copyOfRange(data, 1, data.length);
+        }else args = data;
+
+        List<PartialBotApiMethod<Message>> messages;
+
+        if(args.length == 0){
+            messages = pageManager.execute(update, page);
+        }else{
+            messages = pageManager.executeWithArgs(update, page, args);
+        }
+
+        for(var message: messages){
+            if(message instanceof SendMessage) execute((SendMessage) message);
+            else if(message instanceof SendPhoto) execute((SendPhoto) message);
+        }
     }
 
 
     private void processCallback(Update update) throws TelegramApiException {
+        System.out.println("Callback: " + update.getCallbackQuery().getData());
         String[] data = update.getCallbackQuery().getData().split(" ");
         String page = "";
         String[] args;
@@ -107,9 +120,8 @@ public class TradeBot extends TelegramLongPollingBot {
         if(data[0].startsWith("/")){
             page = data[0];
             args = Arrays.copyOfRange(data, 1, data.length);
-        }else{
-            args = data;
-        }
+        }else args = data;
+
 
         List<PartialBotApiMethod<Message>> messages;
 

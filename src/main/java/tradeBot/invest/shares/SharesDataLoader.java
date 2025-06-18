@@ -1,8 +1,9 @@
-package tradeBot.invest;
+package tradeBot.invest.shares;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
+import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.bars.TimeBarBuilder;
 import org.ta4j.core.num.DecimalNum;
@@ -13,6 +14,8 @@ import tradeBot.invest.configs.InvestConfig;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -29,9 +32,7 @@ public class SharesDataLoader {
         api = InvestApi.create(config.getSandboxToken());
     }
 
-    public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to){
-        //InvestApi api = InvestApi.create(config.getSandboxToken());
-
+    public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to, CandleInterval interval){
         assert api != null;
 
         String figi = api.getInstrumentsService().findInstrument(ticker)
@@ -41,11 +42,12 @@ public class SharesDataLoader {
                 .findFirst().orElseThrow().getFigi();
 
         return api.getMarketDataService().getCandles(figi,
-                from, to, CandleInterval.CANDLE_INTERVAL_DAY).join();
+                from, to, interval).join();
     }
 
-    public BarSeries getBarSeries(String ticker, List<HistoricCandle> candles, CandleInterval interval){
+    public BarSeries getBarSeries(String ticker, List<HistoricCandle> candles, CandleInterval interval, int maxBars){
         BarSeries series = new BaseBarSeriesBuilder().withName(ticker).build();
+        series.setMaximumBarCount(maxBars);
 
         Duration duration = switch (interval){
             case CANDLE_INTERVAL_DAY -> Duration.ofDays(1);
@@ -54,7 +56,11 @@ public class SharesDataLoader {
             default -> Duration.ofDays(1);
         };
 
+
         for(var candle : candles){
+            Instant endTime = ZonedDateTime.ofInstant(
+                    Instant.ofEpochSecond(candle.getTime().getSeconds(), candle.getTime().getNanos()),
+                    ZoneId.of("Europe/Moscow")).toInstant();
             series.addBar(new TimeBarBuilder()
                     .openPrice(DecimalNum.valueOf(candle.getOpen().getUnits() + candle.getOpen().getNano()/1e9))
                     .closePrice(DecimalNum.valueOf(candle.getClose().getUnits() + candle.getClose().getNano()/1e9))
@@ -62,7 +68,8 @@ public class SharesDataLoader {
                     .lowPrice(DecimalNum.valueOf(candle.getLow().getUnits() + candle.getLow().getNano()/1e9))
                     .volume(DecimalNum.valueOf(candle.getVolume()))
                     .timePeriod(duration)
-                    .endTime(Instant.ofEpochSecond(candle.getTime().getSeconds()))
+                    .endTime(endTime)
+                    //.endTime(Instant.ofEpochSecond(candle.getTime().getSeconds()))
                     .build());
         }
 
@@ -83,4 +90,6 @@ public class SharesDataLoader {
 
         return price.getUnits() + price.getNano()/1e9;
     }
+
+
 }

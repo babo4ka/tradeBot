@@ -2,15 +2,13 @@ package tradeBot.invest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.backtest.BarSeriesManager;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import tradeBot.analyze.MAStrategyBuilder;
-import tradeBot.analyze.StrategyRun;
-import tradeBot.commonUtils.Pair;
 import tradeBot.commonUtils.Triple;
+import tradeBot.invest.shares.SharesDataLoader;
 import tradeBot.visualize.StrategyVisualizer;
 
 import java.io.ByteArrayOutputStream;
@@ -37,8 +35,8 @@ public class StrategiesSolutions {
             ZonedDateTime now = ZonedDateTime.now();
             ZonedDateTime from = now.minusYears(1);
 
-            var candles = dataLoader.loadCandlesData(ticker, from.toInstant(), now.toInstant());
-            var barSeries = dataLoader.getBarSeries(ticker, candles, CandleInterval.CANDLE_INTERVAL_DAY);
+            var candles = dataLoader.loadCandlesData(ticker, from.toInstant(), now.toInstant(), CandleInterval.CANDLE_INTERVAL_DAY);
+            var barSeries = dataLoader.getBarSeries(ticker, candles, CandleInterval.CANDLE_INTERVAL_DAY, 200);
 
             var strategyData = strategyBuilder.emaCrossoverStrategyWithRSI(barSeries, 20, 200, 14);
 

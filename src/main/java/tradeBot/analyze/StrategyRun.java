@@ -1,10 +1,7 @@
 package tradeBot.analyze;
 
 import org.springframework.stereotype.Component;
-import org.ta4j.core.AnalysisCriterion;
-import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseStrategy;
-import org.ta4j.core.TradingRecord;
+import org.ta4j.core.*;
 import org.ta4j.core.backtest.BarSeriesManager;
 import org.ta4j.core.criteria.pnl.ProfitCriterion;
 import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;

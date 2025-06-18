@@ -24,7 +24,7 @@ public class MAStrategyBuilder {
 
         RSIIndicator rsiIndicator = new RSIIndicator(closePrice, rsiCount);
 
-        Rule entryRule = new OverIndicatorRule(shortEMA, longEMA).and(new OverIndicatorRule(rsiIndicator, DecimalNum.valueOf(50)));
+        Rule entryRule = new OverIndicatorRule(shortEMA, longEMA).and(new OverIndicatorRule(rsiIndicator, DecimalNum.valueOf(35)));
         Rule exitRule = new UnderIndicatorRule(shortEMA, longEMA);
 
 

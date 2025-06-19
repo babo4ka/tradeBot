@@ -1,13 +1,13 @@
 package tradeBot.visualize;
 
 import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.annotations.XYShapeAnnotation;
+import org.jfree.chart.annotations.XYPolygonAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
-import org.jfree.chart.renderer.xy.XYAreaRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.*;
 import org.springframework.context.annotation.Scope;
@@ -39,6 +39,11 @@ public class StrategyVisualizer {
     private long startX = -1;
     private long endX = -1;
 
+    private double maxPrice = -1;
+
+    private final double[] rsiCheckpoints = {30, 50, 70};
+
+
     public void visualizeMAStrategy(
             String title,
             BarSeries series, TradingRecord record,
@@ -47,13 +52,18 @@ public class StrategyVisualizer {
     ) throws IOException {
         OHLCDataset candleDataset = createCandleDataset(series);
 
-        XYDataset shortEmaDataset = createIndicatorDataset(series, shortIndicator, "Short MA");
-        XYDataset longEmaDataset = createIndicatorDataset(series, longIndicator, "Long MA");
+        XYDataset shortEmaDataset = createIndicatorDataset(series, shortIndicator, "Short MA", false);
+        XYDataset longEmaDataset = createIndicatorDataset(series, longIndicator, "Long MA", false);
 
-        XYDataset rsiDataset = createIndicatorDataset(series, rsiIndicator, "RSI");
+        XYDataset rsiDataset = createIndicatorDataset(series, rsiIndicator, "RSI", true);
 
         List<Integer> entryIndexes = new ArrayList<>();
         List<Integer> exitIndexes = new ArrayList<>();
+
+        series.getBarData().forEach(e -> {
+            double closePrice = e.getClosePrice().doubleValue();
+            if(closePrice > maxPrice) maxPrice = closePrice;
+        });
 
 
         for(var position: record.getPositions()){
@@ -86,16 +96,23 @@ public class StrategyVisualizer {
         plot.setRenderer(2, longEmaRenderer);
 
 
-
-        plot.setDataset(3, createRSIArea());
-        //XYAreaRenderer rsiRenderer = new XYAreaRenderer();
+        plot.setDataset(3, rsiDataset);
         XYLineAndShapeRenderer rsiRenderer = new XYLineAndShapeRenderer(true, false);
-        rsiRenderer.setSeriesShapesFilled(0, true);
-        rsiRenderer.setSeriesFillPaint(0, Color.MAGENTA);
+        rsiRenderer.setSeriesPaint(0, Color.RED);
         plot.setRenderer(3, rsiRenderer);
 
+        plot.setDataset(4, createRsiCheckPoints());
+        XYLineAndShapeRenderer rsiEdgesRenderer = new XYLineAndShapeRenderer(true, false);
+        rsiEdgesRenderer.setSeriesPaint(0, Color.RED);
+        rsiEdgesRenderer.setSeriesPaint(1, Color.RED);
+        rsiEdgesRenderer.setSeriesPaint(2, Color.RED);
+        plot.setRenderer(4, rsiEdgesRenderer);
 
-        plot.setDataset(4, entryDataset);
+        XYPolygonAnnotation rect = createRsiArea();
+        plot.addAnnotation(rect);
+
+
+        plot.setDataset(5, entryDataset);
         XYLineAndShapeRenderer entryRenderer = new XYLineAndShapeRenderer(false, true){
             @Override
             public Paint getItemPaint(int series, int item) {
@@ -111,9 +128,9 @@ public class StrategyVisualizer {
         entryRenderer.setSeriesStroke(0, new BasicStroke(3));
         entryRenderer.setDrawOutlines(true);
         entryRenderer.setUseOutlinePaint(true);
-        plot.setRenderer(4, entryRenderer);
+        plot.setRenderer(5, entryRenderer);
 
-        plot.setDataset(5, exitDataset);
+        plot.setDataset(6, exitDataset);
         XYLineAndShapeRenderer exitRenderer = new XYLineAndShapeRenderer(false, true){
             @Override
             public Paint getItemPaint(int series, int item) {
@@ -129,7 +146,7 @@ public class StrategyVisualizer {
         exitRenderer.setSeriesStroke(0, new BasicStroke(2));
         exitRenderer.setDrawOutlines(true);
         exitRenderer.setUseOutlinePaint(true);
-        plot.setRenderer(5, exitRenderer);
+        plot.setRenderer(6, exitRenderer);
 
 
         NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
@@ -140,7 +157,6 @@ public class StrategyVisualizer {
         ImageIO.write(image, "png", chartOutput);
         chartOutput.close();
     }
-
 
     public ByteArrayOutputStream getMAStrategyPicture(String title,
                                      BarSeries series, TradingRecord record,
@@ -167,7 +183,7 @@ public class StrategyVisualizer {
     }
 
 
-    private XYDataset createIndicatorDataset(BarSeries series, Indicator<Num> indicator, String name){
+    private XYDataset createIndicatorDataset(BarSeries series, Indicator<Num> indicator, String name, boolean normalize){
         XYSeries maSeries = new XYSeries(name);
 
         for(int i=0; i<series.getBarCount();i++){
@@ -212,19 +228,39 @@ public class StrategyVisualizer {
         return dataset;
     }
 
-    private XYDataset createRSIArea(){
-        XYSeries series = new XYSeries("RSI area", false);
+    private XYDataset createRsiCheckPoints(){
+        XYSeries[] seriesArray = {
+                new XYSeries("RSI 70", false),
+                new XYSeries("RSI 50", false),
+                new XYSeries("RSI 30", false)
+        };
 
-        series.add(startX, 30);
-        series.add(endX, 30);
-        series.add(endX, 70);
-        series.add(startX, 70);
-        series.add(startX, 30);
+        seriesArray[0].add(startX, rsiCheckpoints[2]);
+        seriesArray[0].add(endX, rsiCheckpoints[2]);
+        seriesArray[1].add(startX, rsiCheckpoints[1]);
+        seriesArray[1].add(endX, rsiCheckpoints[1]);
+        seriesArray[2].add(startX, rsiCheckpoints[0]);
+        seriesArray[2].add(endX, rsiCheckpoints[0]);
 
 
         XYSeriesCollection dataset = new XYSeriesCollection();
-        dataset.addSeries(series);
+        dataset.addSeries(seriesArray[0]);
+        dataset.addSeries(seriesArray[1]);
+        dataset.addSeries(seriesArray[2]);
         return dataset;
     }
 
+    @NotNull
+    private XYPolygonAnnotation createRsiArea() {
+        double [] coords = {startX, rsiCheckpoints[0],
+                endX, rsiCheckpoints[0],
+                endX, rsiCheckpoints[2],
+                startX, rsiCheckpoints[2]};
+        return new XYPolygonAnnotation(
+                coords,
+                new BasicStroke(0.0f),
+                new Color(100, 150, 200),
+                new Color(166, 241, 219, 100)
+        );
+    }
 }

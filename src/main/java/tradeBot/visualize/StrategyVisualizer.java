@@ -3,9 +3,11 @@ package tradeBot.visualize;
 import lombok.Getter;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYShapeAnnotation;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
+import org.jfree.chart.renderer.xy.XYAreaRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.*;
 import org.springframework.context.annotation.Scope;
@@ -34,15 +36,21 @@ public class StrategyVisualizer {
 
     private ByteArrayOutputStream chartOutput;
 
+    private long startX = -1;
+    private long endX = -1;
+
     public void visualizeMAStrategy(
             String title,
             BarSeries series, TradingRecord record,
-            Indicator<Num> shortIndicator, Indicator<Num> longIndicator
+            Indicator<Num> shortIndicator, Indicator<Num> longIndicator,
+            Indicator<Num> rsiIndicator
     ) throws IOException {
         OHLCDataset candleDataset = createCandleDataset(series);
 
-        XYDataset shortEmaDataset = createMADataset(series, shortIndicator, "Short MA");
-        XYDataset longEmaDataset = createMADataset(series, longIndicator, "Long MA");
+        XYDataset shortEmaDataset = createIndicatorDataset(series, shortIndicator, "Short MA");
+        XYDataset longEmaDataset = createIndicatorDataset(series, longIndicator, "Long MA");
+
+        XYDataset rsiDataset = createIndicatorDataset(series, rsiIndicator, "RSI");
 
         List<Integer> entryIndexes = new ArrayList<>();
         List<Integer> exitIndexes = new ArrayList<>();
@@ -78,7 +86,16 @@ public class StrategyVisualizer {
         plot.setRenderer(2, longEmaRenderer);
 
 
-        plot.setDataset(3, entryDataset);
+
+        plot.setDataset(3, createRSIArea());
+        //XYAreaRenderer rsiRenderer = new XYAreaRenderer();
+        XYLineAndShapeRenderer rsiRenderer = new XYLineAndShapeRenderer(true, false);
+        rsiRenderer.setSeriesShapesFilled(0, true);
+        rsiRenderer.setSeriesFillPaint(0, Color.MAGENTA);
+        plot.setRenderer(3, rsiRenderer);
+
+
+        plot.setDataset(4, entryDataset);
         XYLineAndShapeRenderer entryRenderer = new XYLineAndShapeRenderer(false, true){
             @Override
             public Paint getItemPaint(int series, int item) {
@@ -94,9 +111,9 @@ public class StrategyVisualizer {
         entryRenderer.setSeriesStroke(0, new BasicStroke(3));
         entryRenderer.setDrawOutlines(true);
         entryRenderer.setUseOutlinePaint(true);
-        plot.setRenderer(3, entryRenderer);
+        plot.setRenderer(4, entryRenderer);
 
-        plot.setDataset(4, exitDataset);
+        plot.setDataset(5, exitDataset);
         XYLineAndShapeRenderer exitRenderer = new XYLineAndShapeRenderer(false, true){
             @Override
             public Paint getItemPaint(int series, int item) {
@@ -112,7 +129,7 @@ public class StrategyVisualizer {
         exitRenderer.setSeriesStroke(0, new BasicStroke(2));
         exitRenderer.setDrawOutlines(true);
         exitRenderer.setUseOutlinePaint(true);
-        plot.setRenderer(4, exitRenderer);
+        plot.setRenderer(5, exitRenderer);
 
 
         NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
@@ -127,8 +144,9 @@ public class StrategyVisualizer {
 
     public ByteArrayOutputStream getMAStrategyPicture(String title,
                                      BarSeries series, TradingRecord record,
-                                     Indicator<Num> shortIndicator, Indicator<Num> longIndicator) throws IOException {
-        visualizeMAStrategy(title, series, record, shortIndicator, longIndicator);
+                                     Indicator<Num> shortIndicator, Indicator<Num> longIndicator,
+                                                      Indicator<Num> rsiIndicator) throws IOException {
+        visualizeMAStrategy(title, series, record, shortIndicator, longIndicator, rsiIndicator);
 
         return chartOutput;
     }
@@ -149,7 +167,7 @@ public class StrategyVisualizer {
     }
 
 
-    private XYDataset createMADataset(BarSeries series, Indicator<Num> indicator, String name){
+    private XYDataset createIndicatorDataset(BarSeries series, Indicator<Num> indicator, String name){
         XYSeries maSeries = new XYSeries(name);
 
         for(int i=0; i<series.getBarCount();i++){
@@ -160,7 +178,14 @@ public class StrategyVisualizer {
 
 
                 maSeries.add(millis, indicator.getValue(i).doubleValue());
+
+                if(i == 0 && startX == -1){
+                    startX = millis;
+                }else if(i == series.getBarCount() - 1 && endX == -1){
+                    endX = millis;
+                }
             }
+
         }
 
         XYSeriesCollection dataset = new XYSeriesCollection();
@@ -172,8 +197,8 @@ public class StrategyVisualizer {
     private XYDataset createTradeDataset(BarSeries series, List<Integer> indexes, String name){
         XYSeries tradeSeries = new XYSeries(name);
 
-        for(var index: indexes){
-            if(index >= 0 && index < series.getBarCount()){
+        for (var index : indexes) {
+            if (index >= 0 && index < series.getBarCount()) {
                 var bar = series.getBar(index);
                 Instant time = bar.getEndTime();
                 long millis = time.toEpochMilli();
@@ -184,6 +209,21 @@ public class StrategyVisualizer {
 
         XYSeriesCollection dataset = new XYSeriesCollection();
         dataset.addSeries(tradeSeries);
+        return dataset;
+    }
+
+    private XYDataset createRSIArea(){
+        XYSeries series = new XYSeries("RSI area", false);
+
+        series.add(startX, 30);
+        series.add(endX, 30);
+        series.add(endX, 70);
+        series.add(startX, 70);
+        series.add(startX, 30);
+
+
+        XYSeriesCollection dataset = new XYSeriesCollection();
+        dataset.addSeries(series);
         return dataset;
     }
 

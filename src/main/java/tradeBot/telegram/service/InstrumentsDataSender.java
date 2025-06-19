@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import tradeBot.analyze.strategiesTest.StrategiesTest;
 import tradeBot.invest.StrategiesSolutions;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithStringList;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextNFile;

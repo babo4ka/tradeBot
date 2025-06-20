@@ -29,7 +29,7 @@ public class InstrumentsDataSender {
     StrategiesSolutions solutionsManager;
 
     //@Scheduled(cron = "0 * * * * ?")
-    @Scheduled(fixedDelay = 60000)
+    //@Scheduled(fixedDelay = 60000)
     public void send() throws TelegramApiException, IOException {
         var solutions = solutionsManager.sharesSolutions();
 

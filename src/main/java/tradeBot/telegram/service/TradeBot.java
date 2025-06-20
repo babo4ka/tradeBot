@@ -12,7 +12,9 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import tradeBot.invest.shares.SharesDataDistributor;
 import tradeBot.telegram.configs.BotConfig;
+import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.PageManager;
 
@@ -29,6 +31,9 @@ public class TradeBot extends TelegramLongPollingBot {
     InstrumentsDataSender instrumentsDataSender;
 
     @Autowired
+    SharesDataDistributor dataDistributor;
+
+    @Autowired
     PageManager pageManager;
 
     @EventListener(ContextRefreshedEvent.class)
@@ -36,6 +41,9 @@ public class TradeBot extends TelegramLongPollingBot {
         //instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
         instrumentsDataSender.setEveryInstrumentsSender(this::sendToMe);
         instrumentsDataSender.setCommonSender(this::sendMessageToChooseSolutions);
+
+
+        dataDistributor.setSolutionsSender(this::sendSolutions);
     }
 
     public TradeBot(BotConfig config){
@@ -46,6 +54,17 @@ public class TradeBot extends TelegramLongPollingBot {
     private void sendToMe(String text, InputFile file) throws TelegramApiException {
         MessageBuilder builder = new MessageBuilder();
         execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file));
+    }
+
+    private void sendSolutions(String text, InputFile pic, String[] callbacks) throws TelegramApiException {
+        InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
+        MessageBuilder messageBuilder = new MessageBuilder();
+
+        keyboardBuilder = keyboardBuilder.addButton("нет", callbacks[0]);
+        keyboardBuilder = keyboardBuilder.addButton("да", callbacks[1]);
+        keyboardBuilder.nextRow();
+
+        execute(messageBuilder.createPhotoMessage(keyboardBuilder.build(), config.getOwnerId(), text, pic));
     }
 
     private void sendMessageToChooseSolutions(String[] tickers, double[] prices) throws TelegramApiException {

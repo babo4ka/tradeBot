@@ -46,7 +46,6 @@ public class StrategiesSolutions {
             TradingRecord record = manager.run(strategyData.getStrategy());
             var strategyPicture = strategyVisualizer.getMAStrategyPicture(ticker, barSeries, record, strategyData.getShortMa(), strategyData.getLongMA(), strategyData.getRsiIndicator());
 
-            t.testMAStrategies(barSeries, new Strategy[]{strategyData.getStrategy()});
 
             solutions.put(ticker, new Triple<>(
                     strategyData.getStrategy().shouldEnter(barSeries.getEndIndex(), record) ? "входим" :

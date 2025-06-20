@@ -40,6 +40,7 @@ public class StrategyVisualizer {
     private long endX = -1;
 
     private double maxPrice = -1;
+    private double maxRsi = -1;
 
     private final double[] rsiCheckpoints = {30, 50, 70};
 
@@ -50,12 +51,12 @@ public class StrategyVisualizer {
             Indicator<Num> shortIndicator, Indicator<Num> longIndicator,
             Indicator<Num> rsiIndicator
     ) throws IOException {
+        maxPrice = -1;
+        maxRsi = -1;
         OHLCDataset candleDataset = createCandleDataset(series);
 
         XYDataset shortEmaDataset = createIndicatorDataset(series, shortIndicator, "Short MA", false);
         XYDataset longEmaDataset = createIndicatorDataset(series, longIndicator, "Long MA", false);
-
-        XYDataset rsiDataset = createIndicatorDataset(series, rsiIndicator, "RSI", true);
 
         List<Integer> entryIndexes = new ArrayList<>();
         List<Integer> exitIndexes = new ArrayList<>();
@@ -65,6 +66,9 @@ public class StrategyVisualizer {
             if(closePrice > maxPrice) maxPrice = closePrice;
         });
 
+        maxRsi = maxPrice / 3;
+
+        XYDataset rsiDataset = createIndicatorDataset(series, rsiIndicator, "RSI", true);
 
         for(var position: record.getPositions()){
             entryIndexes.add(position.getEntry().getIndex());
@@ -124,7 +128,7 @@ public class StrategyVisualizer {
                 return new Color(0, 200, 0);
             }
         };
-        entryRenderer.setSeriesShape(0, new Ellipse2D.Double(-12.5, -12.5, 25, 25));
+        entryRenderer.setSeriesShape(0, new Ellipse2D.Double(-7.5, -7.5, 15, 15));
         entryRenderer.setSeriesStroke(0, new BasicStroke(3));
         entryRenderer.setDrawOutlines(true);
         entryRenderer.setUseOutlinePaint(true);
@@ -142,7 +146,7 @@ public class StrategyVisualizer {
                 return new Color(255, 0, 0);
             }
         };;
-        exitRenderer.setSeriesShape(0, new Ellipse2D.Double(-12.5, -12.5, 25, 25));
+        exitRenderer.setSeriesShape(0, new Ellipse2D.Double(-7.5, -7.5, 15, 15));
         exitRenderer.setSeriesStroke(0, new BasicStroke(2));
         exitRenderer.setDrawOutlines(true);
         exitRenderer.setUseOutlinePaint(true);
@@ -152,7 +156,7 @@ public class StrategyVisualizer {
         NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
         numberAxis.setAutoRangeIncludesZero(false);
 
-        BufferedImage image = chart.createBufferedImage(1000, 500);
+        BufferedImage image = chart.createBufferedImage(1500, 1000);
         chartOutput = new ByteArrayOutputStream();
         ImageIO.write(image, "png", chartOutput);
         chartOutput.close();
@@ -193,7 +197,7 @@ public class StrategyVisualizer {
                 long millis = time.toEpochMilli();
 
 
-                maSeries.add(millis, indicator.getValue(i).doubleValue());
+                maSeries.add(millis, normalize?indicator.getValue(i).doubleValue()/ 100 * maxRsi:indicator.getValue(i).doubleValue());
 
                 if(i == 0 && startX == -1){
                     startX = millis;
@@ -235,12 +239,12 @@ public class StrategyVisualizer {
                 new XYSeries("RSI 30", false)
         };
 
-        seriesArray[0].add(startX, rsiCheckpoints[2]);
-        seriesArray[0].add(endX, rsiCheckpoints[2]);
-        seriesArray[1].add(startX, rsiCheckpoints[1]);
-        seriesArray[1].add(endX, rsiCheckpoints[1]);
-        seriesArray[2].add(startX, rsiCheckpoints[0]);
-        seriesArray[2].add(endX, rsiCheckpoints[0]);
+        seriesArray[0].add(startX, rsiCheckpoints[2] / 100 * maxRsi);
+        seriesArray[0].add(endX, rsiCheckpoints[2] / 100 * maxRsi);
+        seriesArray[1].add(startX, rsiCheckpoints[1] / 100 * maxRsi);
+        seriesArray[1].add(endX, rsiCheckpoints[1] / 100 * maxRsi);
+        seriesArray[2].add(startX, rsiCheckpoints[0] / 100 * maxRsi);
+        seriesArray[2].add(endX, rsiCheckpoints[0] / 100 * maxRsi);
 
 
         XYSeriesCollection dataset = new XYSeriesCollection();
@@ -252,10 +256,10 @@ public class StrategyVisualizer {
 
     @NotNull
     private XYPolygonAnnotation createRsiArea() {
-        double [] coords = {startX, rsiCheckpoints[0],
-                endX, rsiCheckpoints[0],
-                endX, rsiCheckpoints[2],
-                startX, rsiCheckpoints[2]};
+        double [] coords = {startX, rsiCheckpoints[0] / 100 * maxRsi,
+                endX, rsiCheckpoints[0] / 100 * maxRsi,
+                endX, rsiCheckpoints[2] / 100 * maxRsi,
+                startX, rsiCheckpoints[2] / 100 * maxRsi};
         return new XYPolygonAnnotation(
                 coords,
                 new BasicStroke(0.0f),

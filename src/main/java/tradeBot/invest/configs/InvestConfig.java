@@ -14,5 +14,7 @@ public class InvestConfig {
     private String usualToken;
     @Value("${sandbox_token}")
     private String sandboxToken;
+    @Value("${isSandbox}")
+    private boolean isSandbox;
 
 }

@@ -52,12 +52,12 @@ public class SharesDataDistributor {
     ApplicationContext context;
 
     //решения, принимаемые на утро
-    private final Map<String, Boolean> morningEnters = new HashMap<>();
-    private final Map<String, Boolean> morningExits = new HashMap<>();
+    private final Map<String, Pair<Boolean, Integer>> morningEnters = new HashMap<>();
+    private final Map<String, Pair<Boolean, Integer>> morningExits = new HashMap<>();
 
     private final Map<String, Pair<BarSeries, MACrossoverWithRSIStrategyData>> instrumentsInfo = new HashMap<>();
 
-    private Map<String, ByteArrayOutputStream> currentPicByTicker = new HashMap<>();
+    private final Map<String, ByteArrayOutputStream> currentPicByTicker = new HashMap<>();
 
     public Pair<BarSeries, MACrossoverWithRSIStrategyData> getDataByTicker(String ticker) {return instrumentsInfo.get(ticker);}
 
@@ -89,7 +89,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "35 50 17 * * ?")
+    @Scheduled(cron = "8 46 0 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningEnters.clear();
         morningExits.clear();
@@ -142,10 +142,10 @@ public class SharesDataDistributor {
 
                 if(strategyData.getStrategy().shouldEnter(series.getEndIndex(), strategyData.getRecord())){
                     text = "входим";
-                    morningEnters.put(ticker, false);
+                    morningEnters.put(ticker, new Pair<>(false, 0));
                 }else if(strategyData.getStrategy().shouldExit(series.getEndIndex(), strategyData.getRecord())){
                     text = "выходим";
-                    morningExits.put(ticker, false);
+                    morningExits.put(ticker, new Pair<>(false, 0));
                 }
 
                 solutionsSender.send("Решение по " + ticker + " " + text + ", подтверждаем?",
@@ -169,6 +169,16 @@ public class SharesDataDistributor {
                 new InputFile(new ByteArrayInputStream(currentPicByTicker.get(ticker).toByteArray()), "file"),
                 new String[]{"/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text,
                         "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text});
+    }
+
+    public void saveForMorning(String ticker){
+        if(morningEnters.get(ticker) != null) morningEnters.get(ticker).setFirst(true);
+        if(morningExits.get(ticker) != null) morningExits.get(ticker).setFirst(true);
+    }
+
+    public void setLotsCount(String ticker, int count){
+        if(morningEnters.get(ticker) != null) morningEnters.get(ticker).setSecond(count);
+        if(morningExits.get(ticker) != null) morningExits.get(ticker).setSecond(count);
     }
 
 //    private void reloadData(){

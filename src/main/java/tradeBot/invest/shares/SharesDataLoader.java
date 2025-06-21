@@ -29,7 +29,7 @@ public class SharesDataLoader {
     @Autowired
     public SharesDataLoader(InvestConfig config){
         this.config = config;
-        api = InvestApi.create(config.getSandboxToken());
+        api = config.isSandbox()?InvestApi.createSandbox(config.getSandboxToken()):InvestApi.create(config.getUsualToken());
     }
 
     public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to, CandleInterval interval){

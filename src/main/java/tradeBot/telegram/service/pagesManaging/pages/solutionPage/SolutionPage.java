@@ -30,11 +30,11 @@ public class SolutionPage implements Page {
         MessageBuilder messageBuilder = new MessageBuilder();
 
         //if(args.length == 1){
-            keyboardBuilder = keyboardBuilder
-                    .addButton("Назад", "/chooseSolution")
-                    .addButton("Вход", "/chooseCount " + args[0]).nextRow();
+        keyboardBuilder = keyboardBuilder
+                .addButton("Назад", "/chooseSolution")
+                .addButton(args[3].equals("входим")?"вход":"выход", "/chooseCount " + args[0]).nextRow();
 
-            messages.add(messageBuilder.createTextMessage(keyboardBuilder.build(), config.getOwnerId(), "Решение по " + args[0] + " цена за лот " + args[1]));
+        messages.add(messageBuilder.createTextMessage(keyboardBuilder.build(), config.getOwnerId(), "Решение по " + args[0] + " цена за лот " + args[1]));
        // }
 
         return messages.stream().map(e -> (PartialBotApiMethod<Message>) e).toList();

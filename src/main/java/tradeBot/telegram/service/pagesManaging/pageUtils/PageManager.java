@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseCountPage;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseSolutionPage;
@@ -35,7 +36,7 @@ public class PageManager {
 
     private String lastCalledPage;
 
-    public List<PartialBotApiMethod<Message>> execute(Update update, String pageName){
+    public List<PartialBotApiMethod<Message>> execute(Update update, String pageName) throws TelegramApiException {
         if(!pageName.isEmpty()) lastCalledPage = pageName;
         else pageName = lastCalledPage;
 
@@ -49,7 +50,7 @@ public class PageManager {
         return pages.get(pageName).executeWithArgs(update, args);
     }
 
-    public List<PartialBotApiMethod<Message>> executeCallback(Update update, String pageName){
+    public List<PartialBotApiMethod<Message>> executeCallback(Update update, String pageName) throws TelegramApiException {
         if(!pageName.isEmpty()) lastCalledPage = pageName;
         else pageName = lastCalledPage;
 

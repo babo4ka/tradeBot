@@ -130,6 +130,8 @@ public class TradeBot extends TelegramLongPollingBot {
             messages = pageManager.executeWithArgs(update, page, args);
         }
 
+        if(messages == null) return;
+
         for(var message: messages){
             if(message instanceof SendMessage) execute((SendMessage) message);
             else if(message instanceof SendPhoto) execute((SendPhoto) message);
@@ -156,6 +158,8 @@ public class TradeBot extends TelegramLongPollingBot {
         }else{
             messages = pageManager.executeCallbackWithArgs(update, page, args);
         }
+
+        if(messages == null) return;
 
         for(var message: messages){
             if(message instanceof SendMessage) execute((SendMessage) message);

@@ -27,6 +27,7 @@ import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextFileNCallba
 import tradeBot.visualize.StrategyVisualizer;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -55,6 +56,8 @@ public class SharesDataDistributor {
     private final Map<String, Boolean> morningExits = new HashMap<>();
 
     private final Map<String, Pair<BarSeries, MACrossoverWithRSIStrategyData>> instrumentsInfo = new HashMap<>();
+
+    private Map<String, ByteArrayOutputStream> currentPicByTicker = new HashMap<>();
 
     public Pair<BarSeries, MACrossoverWithRSIStrategyData> getDataByTicker(String ticker) {return instrumentsInfo.get(ticker);}
 
@@ -86,7 +89,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "0 59 23 * * ?")
+    @Scheduled(cron = "35 50 17 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningEnters.clear();
         morningExits.clear();
@@ -109,15 +112,15 @@ public class SharesDataDistributor {
                     ZoneId.of("Europe/Moscow")).toInstant();
 
 
-            data.getFirst().addBar(new TimeBarBuilder()
-                    .openPrice(DecimalNum.valueOf(candle.getOpen().getUnits() + candle.getOpen().getNano()/1e9))
-                    .closePrice(DecimalNum.valueOf(candle.getClose().getUnits() + candle.getClose().getNano()/1e9))
-                    .highPrice(DecimalNum.valueOf(candle.getHigh().getUnits() + candle.getHigh().getNano()/1e9))
-                    .lowPrice(DecimalNum.valueOf(candle.getLow().getUnits() + candle.getLow().getNano()/1e9))
-                    .volume(DecimalNum.valueOf(candle.getVolume()))
-                    .timePeriod(Duration.ofDays(1))
-                    .endTime(endTime)
-                    .build());
+//            data.getFirst().addBar(new TimeBarBuilder()
+//                    .openPrice(DecimalNum.valueOf(candle.getOpen().getUnits() + candle.getOpen().getNano()/1e9))
+//                    .closePrice(DecimalNum.valueOf(candle.getClose().getUnits() + candle.getClose().getNano()/1e9))
+//                    .highPrice(DecimalNum.valueOf(candle.getHigh().getUnits() + candle.getHigh().getNano()/1e9))
+//                    .lowPrice(DecimalNum.valueOf(candle.getLow().getUnits() + candle.getLow().getNano()/1e9))
+//                    .volume(DecimalNum.valueOf(candle.getVolume()))
+//                    .timePeriod(Duration.ofDays(1))
+//                    .endTime(endTime)
+//                    .build());
 
             BarSeriesManager manager = new BarSeriesManager(data.getFirst());
             data.getSecond().setRecord(manager.run(data.getSecond().getStrategy()));
@@ -134,6 +137,7 @@ public class SharesDataDistributor {
                         strategyData.getRsiIndicator());
 
                 InputFile picToSend = new InputFile(new ByteArrayInputStream(pic.toByteArray()), "file");
+                currentPicByTicker.put(ticker, pic);
                 String text = "";
 
                 if(strategyData.getStrategy().shouldEnter(series.getEndIndex(), strategyData.getRecord())){
@@ -146,12 +150,25 @@ public class SharesDataDistributor {
 
                 solutionsSender.send("Решение по " + ticker + " " + text + ", подтверждаем?",
                         picToSend,
-                        new String[]{"/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0",
-                                "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1"});
+                        new String[]{"/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text,
+                                "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text});
             }
-
-
         }
+    }
+
+    public void sendToChat(String ticker) throws TelegramApiException {
+        String text;
+
+        SharesDataLoader loader = context.getBean(SharesDataLoader.class);
+
+        if(morningEnters.get(ticker) != null) text = "входим";
+        else if (morningExits.get(ticker) != null) text = "выходим";
+        else return;
+
+        solutionsSender.send("Решение по " + ticker + " " + text + ", подтверждаем?",
+                new InputFile(new ByteArrayInputStream(currentPicByTicker.get(ticker).toByteArray()), "file"),
+                new String[]{"/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text,
+                        "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text});
     }
 
 //    private void reloadData(){

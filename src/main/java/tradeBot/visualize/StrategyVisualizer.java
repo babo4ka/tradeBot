@@ -5,7 +5,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYPolygonAnnotation;
+import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
@@ -25,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Date;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,6 +56,11 @@ public class StrategyVisualizer {
     ) throws IOException {
         maxPrice = -1;
         maxRsi = -1;
+
+        startX = -1;
+        endX = -1;
+
+
         OHLCDataset candleDataset = createCandleDataset(series);
 
         XYDataset shortEmaDataset = createIndicatorDataset(series, shortIndicator, "Short MA", false);
@@ -79,44 +87,35 @@ public class StrategyVisualizer {
         XYDataset entryDataset = createTradeDataset(series, entryIndexes, "точки входа");
         XYDataset exitDataset = createTradeDataset(series, exitIndexes, "точки выхода");
 
-        JFreeChart chart = ChartFactory.createCandlestickChart(title, "time", "Price",
-                candleDataset, true);
 
-        XYPlot plot = chart.getXYPlot();
+        XYPlot candlesAndMAPlot = new XYPlot(candleDataset, new DateAxis("Time"), new NumberAxis("Price"), null);
+        candlesAndMAPlot.setRenderer(new CandlestickRenderer());
+        setBackgroundColor(candlesAndMAPlot);
 
+        XYPlot rsiPlot = new XYPlot();
+        rsiPlot.setRangeAxis(new NumberAxis("Value"));
+        rsiPlot.setDomainAxis(new DateAxis("Time"));
+        setBackgroundColor(rsiPlot);
+
+
+        //отображение свечного графика, скользящих средних и точек входа и выхода
         CandlestickRenderer renderer = new CandlestickRenderer();
         renderer.setAutoWidthMethod(CandlestickRenderer.WIDTHMETHOD_AVERAGE);
-        plot.setRenderer(renderer);
+        candlesAndMAPlot.setRenderer(renderer);
 
-
-        plot.setDataset(1, shortEmaDataset);
+        candlesAndMAPlot.setDataset(1, shortEmaDataset);
         XYLineAndShapeRenderer shortEmaRenderer = new XYLineAndShapeRenderer(true, false);
         shortEmaRenderer.setSeriesPaint(0, Color.black);
-        plot.setRenderer(1, shortEmaRenderer);
+        candlesAndMAPlot.setRenderer(1, shortEmaRenderer);
 
-        plot.setDataset(2, longEmaDataset);
+        candlesAndMAPlot.setDataset(2, longEmaDataset);
         XYLineAndShapeRenderer longEmaRenderer = new XYLineAndShapeRenderer(true, false);
         longEmaRenderer.setSeriesPaint(0, Color.CYAN);
-        plot.setRenderer(2, longEmaRenderer);
+        candlesAndMAPlot.setRenderer(2, longEmaRenderer);
 
 
-        plot.setDataset(3, rsiDataset);
-        XYLineAndShapeRenderer rsiRenderer = new XYLineAndShapeRenderer(true, false);
-        rsiRenderer.setSeriesPaint(0, Color.RED);
-        plot.setRenderer(3, rsiRenderer);
 
-        plot.setDataset(4, createRsiCheckPoints());
-        XYLineAndShapeRenderer rsiEdgesRenderer = new XYLineAndShapeRenderer(true, false);
-        rsiEdgesRenderer.setSeriesPaint(0, Color.RED);
-        rsiEdgesRenderer.setSeriesPaint(1, Color.RED);
-        rsiEdgesRenderer.setSeriesPaint(2, Color.RED);
-        plot.setRenderer(4, rsiEdgesRenderer);
-
-        XYPolygonAnnotation rect = createRsiArea();
-        plot.addAnnotation(rect);
-
-
-        plot.setDataset(5, entryDataset);
+        candlesAndMAPlot.setDataset(3, entryDataset);
         XYLineAndShapeRenderer entryRenderer = new XYLineAndShapeRenderer(false, true){
             @Override
             public Paint getItemPaint(int series, int item) {
@@ -132,9 +131,9 @@ public class StrategyVisualizer {
         entryRenderer.setSeriesStroke(0, new BasicStroke(3));
         entryRenderer.setDrawOutlines(true);
         entryRenderer.setUseOutlinePaint(true);
-        plot.setRenderer(5, entryRenderer);
+        candlesAndMAPlot.setRenderer(3, entryRenderer);
 
-        plot.setDataset(6, exitDataset);
+        candlesAndMAPlot.setDataset(4, exitDataset);
         XYLineAndShapeRenderer exitRenderer = new XYLineAndShapeRenderer(false, true){
             @Override
             public Paint getItemPaint(int series, int item) {
@@ -150,13 +149,41 @@ public class StrategyVisualizer {
         exitRenderer.setSeriesStroke(0, new BasicStroke(2));
         exitRenderer.setDrawOutlines(true);
         exitRenderer.setUseOutlinePaint(true);
-        plot.setRenderer(6, exitRenderer);
+        candlesAndMAPlot.setRenderer(4, exitRenderer);
 
 
-        NumberAxis numberAxis = (NumberAxis) plot.getRangeAxis();
-        numberAxis.setAutoRangeIncludesZero(false);
+        //отображение индекса rsi
+        rsiPlot.setDataset(0, rsiDataset);
+        XYLineAndShapeRenderer rsiRenderer = new XYLineAndShapeRenderer(true, false);
+        rsiRenderer.setSeriesPaint(0, Color.RED);
+        rsiPlot.setRenderer(0, rsiRenderer);
 
-        BufferedImage image = chart.createBufferedImage(1500, 1000);
+        rsiPlot.setDataset(1, createRsiCheckPoints());
+        XYLineAndShapeRenderer rsiEdgesRenderer = new XYLineAndShapeRenderer(true, false);
+        rsiEdgesRenderer.setSeriesPaint(0, new Color(80, 0, 17));
+        rsiEdgesRenderer.setSeriesPaint(1, new Color(40, 231, 0));
+        rsiEdgesRenderer.setSeriesPaint(2, new Color(187, 0, 32));
+        rsiPlot.setRenderer(1, rsiEdgesRenderer);
+
+        XYPolygonAnnotation rect = createRsiArea();
+        rsiPlot.addAnnotation(rect);
+
+
+
+        ((NumberAxis) candlesAndMAPlot.getRangeAxis()).setAutoRangeIncludesZero(false);
+        ((NumberAxis) rsiPlot.getRangeAxis()).setAutoRangeIncludesZero(false);
+
+        CombinedDomainXYPlot combinedPlot = new CombinedDomainXYPlot(new NumberAxis("Стратегия с двумя скользящими средними и RSI"));
+        ((NumberAxis) combinedPlot.getDomainAxis()).setAutoRangeIncludesZero(false);
+        combinedPlot.setGap(10);
+        combinedPlot.add(candlesAndMAPlot, 3);
+        combinedPlot.add(rsiPlot, 1);
+
+        //setBackgroundColor(combinedPlot);
+
+        JFreeChart combinedChart = new JFreeChart("Combined chart", JFreeChart.DEFAULT_TITLE_FONT, combinedPlot, true);
+
+        BufferedImage image = combinedChart.createBufferedImage(1500, 1000);
         chartOutput = new ByteArrayOutputStream();
         ImageIO.write(image, "png", chartOutput);
         chartOutput.close();
@@ -197,7 +224,7 @@ public class StrategyVisualizer {
                 long millis = time.toEpochMilli();
 
 
-                maSeries.add(millis, normalize?indicator.getValue(i).doubleValue()/ 100 * maxRsi:indicator.getValue(i).doubleValue());
+                maSeries.add(millis, indicator.getValue(i).doubleValue());
 
                 if(i == 0 && startX == -1){
                     startX = millis;
@@ -239,12 +266,12 @@ public class StrategyVisualizer {
                 new XYSeries("RSI 30", false)
         };
 
-        seriesArray[0].add(startX, rsiCheckpoints[2] / 100 * maxRsi);
-        seriesArray[0].add(endX, rsiCheckpoints[2] / 100 * maxRsi);
-        seriesArray[1].add(startX, rsiCheckpoints[1] / 100 * maxRsi);
-        seriesArray[1].add(endX, rsiCheckpoints[1] / 100 * maxRsi);
-        seriesArray[2].add(startX, rsiCheckpoints[0] / 100 * maxRsi);
-        seriesArray[2].add(endX, rsiCheckpoints[0] / 100 * maxRsi);
+        seriesArray[0].add(startX, rsiCheckpoints[2]);
+        seriesArray[0].add(endX, rsiCheckpoints[2]);
+        seriesArray[1].add(startX, rsiCheckpoints[1]);
+        seriesArray[1].add(endX, rsiCheckpoints[1]);
+        seriesArray[2].add(startX, rsiCheckpoints[0]);
+        seriesArray[2].add(endX, rsiCheckpoints[0]);
 
 
         XYSeriesCollection dataset = new XYSeriesCollection();
@@ -256,15 +283,27 @@ public class StrategyVisualizer {
 
     @NotNull
     private XYPolygonAnnotation createRsiArea() {
-        double [] coords = {startX, rsiCheckpoints[0] / 100 * maxRsi,
-                endX, rsiCheckpoints[0] / 100 * maxRsi,
-                endX, rsiCheckpoints[2] / 100 * maxRsi,
-                startX, rsiCheckpoints[2] / 100 * maxRsi};
+        double [] coords = {startX, rsiCheckpoints[0],
+                endX, rsiCheckpoints[0],
+                endX, rsiCheckpoints[2],
+                startX, rsiCheckpoints[2]};
         return new XYPolygonAnnotation(
                 coords,
                 new BasicStroke(0.0f),
-                new Color(100, 150, 200),
-                new Color(166, 241, 219, 100)
+                new Color(100, 150, 200, 0),
+                new Color(165, 223, 231, 66)
         );
+    }
+
+    private void setBackgroundColor(XYPlot plot){
+        ZonedDateTime time = ZonedDateTime.now();
+        int hour = time.getHour();
+
+        System.out.println("current hour " + hour);
+        if(hour >= 6 && hour <= 17){
+            plot.setBackgroundPaint(new Color(255, 255, 255));
+        }else{
+            plot.setBackgroundPaint(new Color(61, 58, 58));
+        }
     }
 }

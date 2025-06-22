@@ -105,7 +105,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "35 14 14 * * ?")
+    @Scheduled(cron = "46 36 17 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
@@ -183,8 +183,7 @@ public class SharesDataDistributor {
                 keyboardBuilder.addButton("Отменить решение", "/cancelSolution " + ticker)
                         .addButton("Добрать позиции", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text).nextRow();
             else
-                keyboardBuilder.addButton("Нет", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text)
-                        .addButton("Да", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text)
+                keyboardBuilder.addButton("Принять решение", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text)
                         .nextRow();
         }
 

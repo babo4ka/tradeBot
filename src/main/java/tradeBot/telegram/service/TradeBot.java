@@ -1,5 +1,6 @@
 package tradeBot.telegram.service;
 
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
@@ -17,6 +18,7 @@ import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.PageManager;
+import tradeBot.telegram.service.utils.MessagesDump;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -36,6 +38,9 @@ public class TradeBot extends TelegramLongPollingBot {
     @Autowired
     PageManager pageManager;
 
+    @Autowired
+    MessagesDump messagesDump;
+
     @EventListener(ContextRefreshedEvent.class)
     private void setup() throws TelegramApiException, IOException {
         //instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
@@ -53,19 +58,11 @@ public class TradeBot extends TelegramLongPollingBot {
 
     private void sendToMe(String text, InputFile file) throws TelegramApiException {
         MessageBuilder builder = new MessageBuilder();
-        execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file));
+        messagesDump.addMessage(execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file)));
     }
 
     private void sendSolutions(PartialBotApiMethod<Message> message) throws TelegramApiException {
-//        InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
-//        MessageBuilder messageBuilder = new MessageBuilder();
-//
-//        keyboardBuilder = keyboardBuilder.addButton("нет", callbacks[0]);
-//        keyboardBuilder = keyboardBuilder.addButton("да", callbacks[1]);
-//        keyboardBuilder.nextRow();
-//
-//        execute(messageBuilder.createPhotoMessage(keyboardBuilder.build(), config.getOwnerId(), text, pic));
-        execute((SendPhoto) message);
+        messagesDump.addMessage(execute((SendPhoto) message));
     }
 
     private void sendMessageToChooseSolutions(String[] tickers, double[] prices) throws TelegramApiException {
@@ -81,7 +78,7 @@ public class TradeBot extends TelegramLongPollingBot {
                 .stream().map(e -> (SendMessage)e).toList();
 
         for(var msg: messages){
-            execute(msg);
+            messagesDump.addMessage(execute(msg));
         }
     }
 
@@ -112,6 +109,7 @@ public class TradeBot extends TelegramLongPollingBot {
 
 
     private void processMessage(Update update) throws TelegramApiException {
+        deletePreviousMessages();
         System.out.println("Message: " + update.getMessage().getText());
 
         String[] data = update.getMessage().getText().split(" ");
@@ -134,13 +132,14 @@ public class TradeBot extends TelegramLongPollingBot {
         if(messages == null) return;
 
         for(var message: messages){
-            if(message instanceof SendMessage) execute((SendMessage) message);
-            else if(message instanceof SendPhoto) execute((SendPhoto) message);
+            if(message instanceof SendMessage) messagesDump.addMessage(execute((SendMessage) message));
+            else if(message instanceof SendPhoto) messagesDump.addMessage(execute((SendPhoto) message));
         }
     }
 
 
     private void processCallback(Update update) throws TelegramApiException {
+        deletePreviousMessages();
         System.out.println("Callback: " + update.getCallbackQuery().getData());
         String[] data = update.getCallbackQuery().getData().split(" ");
         String page = "";
@@ -163,8 +162,17 @@ public class TradeBot extends TelegramLongPollingBot {
         if(messages == null) return;
 
         for(var message: messages){
-            if(message instanceof SendMessage) execute((SendMessage) message);
-            else if(message instanceof SendPhoto) execute((SendPhoto) message);
+            if(message instanceof SendMessage) messagesDump.addMessage(execute((SendMessage) message));
+            else if(message instanceof SendPhoto) messagesDump.addMessage(execute((SendPhoto) message));
         }
+    }
+
+
+    private void deletePreviousMessages() throws TelegramApiException {
+        for(var message: messagesDump.getMessagesToDelete()){
+            execute(message);
+        }
+
+        messagesDump.clearDump();
     }
 }

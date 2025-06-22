@@ -40,7 +40,8 @@ public class SolutionPage implements Page {
                 .addButton("Назад", "/chooseSolution").nextRow();
 
         if(args[2].equals("1")){
-            sharesDataDistributor.setLotsCount(args[0], 0);
+            if(sharesDataDistributor.getSolutionTypeByTicker(args[0]) == SharesDataDistributor.SolutionType.EXIT)
+                sharesDataDistributor.setLotsCount(args[0], 0);
 
             tickerToWork = args[0];
 

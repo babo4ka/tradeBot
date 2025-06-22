@@ -62,9 +62,9 @@ public class SharesDataDistributor {
 
     private final Map<String, Triple<SolutionType, Boolean, Integer>> morningSolutions = new HashMap<>();
 
-    public int getLotsPutByTicker(String ticker){
-        return morningSolutions.get(ticker).getThird();
-    }
+    public int getLotsPutByTicker(String ticker){return morningSolutions.get(ticker).getThird();}
+
+    public SolutionType getSolutionTypeByTicker(String ticker){ return morningSolutions.get(ticker).getFirst();}
 
     public enum SolutionType{
         ENTER, EXIT
@@ -105,7 +105,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "51 48 13 * * ?")
+    @Scheduled(cron = "35 14 14 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
@@ -195,7 +195,6 @@ public class SharesDataDistributor {
 
 
         solutionsSender.send(message);
-
     }
 
 

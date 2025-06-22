@@ -12,8 +12,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.backtest.BarSeriesManager;
-import org.ta4j.core.bars.TimeBarBuilder;
-import org.ta4j.core.num.DecimalNum;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
@@ -21,15 +20,18 @@ import ru.tinkoff.piapi.core.InvestApi;
 import tradeBot.analyze.MAStrategyBuilder;
 import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
 import tradeBot.commonUtils.Pair;
+import tradeBot.commonUtils.Triple;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
+import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextFileNCallback;
+import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
+import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.visualize.StrategyVisualizer;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -44,16 +46,30 @@ public class SharesDataDistributor {
     @Setter
     private SenderWithTextFileNCallback solutionsSender;
 
-    final InvestConfig config;
+    private final MessageBuilder messageBuilder = new MessageBuilder();
+    private InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
+
+    @Autowired
+    BotConfig tgBotConfig;
+
+    final InvestConfig investConfig;
     final InvestApi api;
     final int maxCandlesCount = 200;
 
     @Autowired
     ApplicationContext context;
 
-    //решения, принимаемые на утро
-    private final Map<String, Pair<Boolean, Integer>> morningEnters = new HashMap<>();
-    private final Map<String, Pair<Boolean, Integer>> morningExits = new HashMap<>();
+
+    private final Map<String, Triple<SolutionType, Boolean, Integer>> morningSolutions = new HashMap<>();
+
+    public int getLotsPutByTicker(String ticker){
+        return morningSolutions.get(ticker).getThird();
+    }
+
+    public enum SolutionType{
+        ENTER, EXIT
+    }
+
 
     private final Map<String, Pair<BarSeries, MACrossoverWithRSIStrategyData>> instrumentsInfo = new HashMap<>();
 
@@ -63,7 +79,7 @@ public class SharesDataDistributor {
 
     //@Autowired
     public SharesDataDistributor(InvestConfig config){
-        this.config = config;
+        this.investConfig = config;
         api = InvestApi.create(config.getSandboxToken());
     }
 
@@ -89,10 +105,9 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "8 46 0 * * ?")
+    @Scheduled(cron = "51 48 13 * * ?")
     private void update() throws IOException, TelegramApiException {
-        morningEnters.clear();
-        morningExits.clear();
+        morningSolutions.clear();
 
         SharesDataLoader loader = context.getBean(SharesDataLoader.class);
 
@@ -136,49 +151,67 @@ public class SharesDataDistributor {
                         strategyData.getShortMa(), strategyData.getLongMA(),
                         strategyData.getRsiIndicator());
 
-                InputFile picToSend = new InputFile(new ByteArrayInputStream(pic.toByteArray()), "file");
                 currentPicByTicker.put(ticker, pic);
-                String text = "";
 
-                if(strategyData.getStrategy().shouldEnter(series.getEndIndex(), strategyData.getRecord())){
-                    text = "входим";
-                    morningEnters.put(ticker, new Pair<>(false, 0));
-                }else if(strategyData.getStrategy().shouldExit(series.getEndIndex(), strategyData.getRecord())){
-                    text = "выходим";
-                    morningExits.put(ticker, new Pair<>(false, 0));
-                }
+                if(strategyData.getStrategy().shouldEnter(series.getEndIndex(), strategyData.getRecord()))
+                    morningSolutions.put(ticker, new Triple<>(SolutionType.ENTER, false, 0));
+                else if(strategyData.getStrategy().shouldExit(series.getEndIndex(), strategyData.getRecord()))
+                    morningSolutions.put(ticker, new Triple<>(SolutionType.EXIT, false, 0));
 
-                solutionsSender.send("Решение по " + ticker + " " + text + ", подтверждаем?",
-                        picToSend,
-                        new String[]{"/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text,
-                                "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text});
+
+                sendToChat(ticker);
             }
         }
     }
 
     public void sendToChat(String ticker) throws TelegramApiException {
-        String text;
+        String text = "";
 
         SharesDataLoader loader = context.getBean(SharesDataLoader.class);
 
-        if(morningEnters.get(ticker) != null) text = "входим";
-        else if (morningExits.get(ticker) != null) text = "выходим";
-        else return;
+        keyboardBuilder = keyboardBuilder.reset();
 
-        solutionsSender.send("Решение по " + ticker + " " + text + ", подтверждаем?",
-                new InputFile(new ByteArrayInputStream(currentPicByTicker.get(ticker).toByteArray()), "file"),
-                new String[]{"/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text,
-                        "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text});
+        if(morningSolutions.containsKey(ticker)){
+            var solution = morningSolutions.get(ticker);
+
+            switch (solution.getFirst()){
+                case ENTER -> text = "входим";
+                case EXIT -> text = "выходим";
+            }
+
+            if(solution.getSecond())
+                keyboardBuilder.addButton("Отменить решение", "/cancelSolution " + ticker)
+                        .addButton("Добрать позиции", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text).nextRow();
+            else
+                keyboardBuilder.addButton("Нет", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 0 " + text)
+                        .addButton("Да", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text)
+                        .nextRow();
+        }
+
+        SendPhoto message = messageBuilder.createPhotoMessage(keyboardBuilder.build(),
+                tgBotConfig.getOwnerId(),
+                "Решение по " + ticker + " " + text + ", подтверждаем?",
+                new InputFile(new ByteArrayInputStream(currentPicByTicker.get(ticker).toByteArray()), "file"));
+
+
+        solutionsSender.send(message);
+
     }
 
-    public void saveForMorning(String ticker){
-        if(morningEnters.get(ticker) != null) morningEnters.get(ticker).setFirst(true);
-        if(morningExits.get(ticker) != null) morningExits.get(ticker).setFirst(true);
-    }
 
     public void setLotsCount(String ticker, int count){
-        if(morningEnters.get(ticker) != null) morningEnters.get(ticker).setSecond(count);
-        if(morningExits.get(ticker) != null) morningExits.get(ticker).setSecond(count);
+        if(morningSolutions.containsKey(ticker)){
+            morningSolutions.get(ticker).setSecond(true);
+            morningSolutions.get(ticker).setThird(morningSolutions.get(ticker).getThird() + count);
+        }
+
+    }
+
+    public void cancelForMorning(String ticker){
+        if(morningSolutions.containsKey(ticker)) {
+            morningSolutions.get(ticker).setSecond(false);
+            morningSolutions.get(ticker).setThird(0);
+        }
     }
 
 //    private void reloadData(){

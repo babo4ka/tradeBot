@@ -56,15 +56,16 @@ public class TradeBot extends TelegramLongPollingBot {
         execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file));
     }
 
-    private void sendSolutions(String text, InputFile pic, String[] callbacks) throws TelegramApiException {
-        InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
-        MessageBuilder messageBuilder = new MessageBuilder();
-
-        keyboardBuilder = keyboardBuilder.addButton("нет", callbacks[0]);
-        keyboardBuilder = keyboardBuilder.addButton("да", callbacks[1]);
-        keyboardBuilder.nextRow();
-
-        execute(messageBuilder.createPhotoMessage(keyboardBuilder.build(), config.getOwnerId(), text, pic));
+    private void sendSolutions(PartialBotApiMethod<Message> message) throws TelegramApiException {
+//        InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
+//        MessageBuilder messageBuilder = new MessageBuilder();
+//
+//        keyboardBuilder = keyboardBuilder.addButton("нет", callbacks[0]);
+//        keyboardBuilder = keyboardBuilder.addButton("да", callbacks[1]);
+//        keyboardBuilder.nextRow();
+//
+//        execute(messageBuilder.createPhotoMessage(keyboardBuilder.build(), config.getOwnerId(), text, pic));
+        execute((SendPhoto) message);
     }
 
     private void sendMessageToChooseSolutions(String[] tickers, double[] prices) throws TelegramApiException {

@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
+import tradeBot.telegram.service.pagesManaging.pages.solutionPage.CancelSolution;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseCountPage;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.ChooseSolutionPage;
 import tradeBot.telegram.service.pagesManaging.pages.solutionPage.SolutionPage;
@@ -32,6 +33,7 @@ public class PageManager {
         pages.put("/chooseSolution", context.getBean(ChooseSolutionPage.class));
         pages.put("/solution", context.getBean(SolutionPage.class));
         pages.put("/chooseCount", context.getBean(ChooseCountPage.class));
+        pages.put("/cancelSolution", context.getBean(CancelSolution.class));
     }
 
     private String lastCalledPage;

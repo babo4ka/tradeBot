@@ -40,7 +40,7 @@ public class SolutionPage implements Page {
                 .addButton("Назад", "/chooseSolution").nextRow();
 
         if(args[2].equals("1")){
-            sharesDataDistributor.saveForMorning(args[0]);
+            sharesDataDistributor.setLotsCount(args[0], 0);
 
             tickerToWork = args[0];
 
@@ -48,11 +48,6 @@ public class SolutionPage implements Page {
                     (keyboardBuilder.build(), config.getOwnerId(),
                             "Решение по " + args[0] + " цена за лот " + args[1] + ", введи количество лотов"));
         }
-
-
-//        keyboardBuilder = keyboardBuilder
-//                .addButton("Назад", "/chooseSolution")
-//                .addButton(args[3].equals("входим")?"вход":"выход", "/chooseCount " + args[0]).nextRow();
 
 
         return messages.stream().map(e -> (PartialBotApiMethod<Message>) e).toList();
@@ -68,11 +63,12 @@ public class SolutionPage implements Page {
         keyboardBuilder = keyboardBuilder
                 .addButton("Назад", "/chooseSolution").nextRow();
 
-        sharesDataDistributor.setLotsCount(args[0], Integer.parseInt(args[0]));
+        sharesDataDistributor.setLotsCount(tickerToWork, Integer.parseInt(args[0]));
+
 
         messages.add(messageBuilder.createTextMessage(
                 keyboardBuilder.build(), config.getOwnerId(),
-                "Будет выставлено " + args[0] + " лотов для " + tickerToWork
+                "Будет выставлено " + (sharesDataDistributor.getLotsPutByTicker(tickerToWork)) + " лотов для " + tickerToWork
         ));
 
         tickerToWork = "";

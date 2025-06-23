@@ -299,7 +299,6 @@ public class StrategyVisualizer {
         ZonedDateTime time = ZonedDateTime.now();
         int hour = time.getHour();
 
-        System.out.println("current hour " + hour);
         if(hour >= 6 && hour <= 17){
             plot.setBackgroundPaint(new Color(255, 255, 255));
         }else{

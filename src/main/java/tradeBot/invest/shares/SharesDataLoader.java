@@ -9,8 +9,10 @@ import org.ta4j.core.bars.TimeBarBuilder;
 import org.ta4j.core.num.DecimalNum;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
+import ru.tinkoff.piapi.contract.v1.Quotation;
 import ru.tinkoff.piapi.core.InvestApi;
 import tradeBot.invest.configs.InvestConfig;
+import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -27,6 +29,9 @@ public class SharesDataLoader {
     InvestApi api;
 
     @Autowired
+    OrdersInSandboxService oiss;
+
+    @Autowired
     public SharesDataLoader(InvestConfig config){
         this.config = config;
         api = config.isSandbox()?InvestApi.createSandbox(config.getSandboxToken()):InvestApi.create(config.getUsualToken());
@@ -40,6 +45,8 @@ public class SharesDataLoader {
                 .filter(i->i.getFigi().startsWith("BBG00"))
                 .filter(i->i.getInstrumentType().equals("share"))
                 .findFirst().orElseThrow().getFigi();
+
+        oiss.postOrderToBuy(figi, 10, getInstrumentPriceAsQuotation(ticker));
 
         return api.getMarketDataService().getCandles(figi,
                 from, to, interval).join();
@@ -89,6 +96,18 @@ public class SharesDataLoader {
         var price = api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
 
         return price.getUnits() + price.getNano()/1e9;
+    }
+
+    public Quotation getInstrumentPriceAsQuotation(String ticker){
+        assert api != null;
+
+        String figi = api.getInstrumentsService().findInstrument(ticker)
+                .join().stream()
+                .filter(i->i.getFigi().startsWith("BBG00"))
+                .filter(i->i.getInstrumentType().equals("share"))
+                .findFirst().orElseThrow().getFigi();
+
+        return api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
     }
 
 

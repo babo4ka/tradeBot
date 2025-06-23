@@ -23,6 +23,7 @@ import tradeBot.commonUtils.Pair;
 import tradeBot.commonUtils.Triple;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
+import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextFileNCallback;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
@@ -58,6 +59,8 @@ public class SharesDataDistributor {
 
     @Autowired
     ApplicationContext context;
+
+
 
 
     private final Map<String, Triple<SolutionType, Boolean, Integer>> morningSolutions = new HashMap<>();
@@ -105,7 +108,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "46 36 17 * * ?")
+    @Scheduled(cron = "45 31 21 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 

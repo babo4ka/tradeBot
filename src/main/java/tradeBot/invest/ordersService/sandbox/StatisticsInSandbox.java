@@ -64,7 +64,7 @@ public class StatisticsInSandbox {
             subList.add(operations.get(index));
             int subIndex = index + 1;
 
-            while(operations.get(subIndex).getType().equals("OPERATION_TYPE_BUY")){
+            while(operations.get(subIndex).getOperationType().equals(OperationType.OPERATION_TYPE_BUY)){
                 subList.add(operations.get(subIndex));
                 subIndex++;
 

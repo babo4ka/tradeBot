@@ -6,12 +6,10 @@ import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
-import tradeBot.invest.TickersList;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
-import tradeBot.telegram.service.pagesManaging.pageUtils.ReplyKeyboardBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;

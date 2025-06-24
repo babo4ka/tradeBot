@@ -3,7 +3,6 @@ package tradeBot.invest.shares;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
-import org.ta4j.core.BaseBar;
 import org.ta4j.core.BaseBarSeriesBuilder;
 import org.ta4j.core.bars.TimeBarBuilder;
 import org.ta4j.core.num.DecimalNum;
@@ -11,8 +10,10 @@ import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 import ru.tinkoff.piapi.core.InvestApi;
+import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
 import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
+import tradeBot.invest.ordersService.sandbox.StatisticsInSandbox;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +33,9 @@ public class SharesDataLoader {
     OrdersInSandboxService oiss;
 
     @Autowired
+    StatisticsInSandbox sis;
+
+    @Autowired
     public SharesDataLoader(InvestConfig config){
         this.config = config;
         api = config.isSandbox()?InvestApi.createSandbox(config.getSandboxToken()):InvestApi.create(config.getUsualToken());
@@ -40,13 +44,12 @@ public class SharesDataLoader {
     public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to, CandleInterval interval){
         assert api != null;
 
-        String figi = api.getInstrumentsService().findInstrument(ticker)
-                .join().stream()
-                .filter(i->i.getFigi().startsWith("BBG00"))
-                .filter(i->i.getInstrumentType().equals("share"))
-                .findFirst().orElseThrow().getFigi();
+        String figi = getFigiForShare(ticker);
 
-        oiss.postOrderToBuy(figi, 10, getInstrumentPriceAsQuotation(ticker));
+        //oiss.postOrderToBuy(figi, 3, getInstrumentPriceAsQuotation(ticker));
+        //oiss.postOrderToSell(figi, getInstrumentPriceAsQuotation(ticker));
+        System.out.println("profit for " + ticker + " " + sis.countShareProfitByFigi(figi));
+
 
         return api.getMarketDataService().getCandles(figi,
                 from, to, interval).join();
@@ -87,11 +90,7 @@ public class SharesDataLoader {
     public double getInstrumentPrice(String ticker){
         assert api != null;
 
-        String figi = api.getInstrumentsService().findInstrument(ticker)
-                .join().stream()
-                .filter(i->i.getFigi().startsWith("BBG00"))
-                .filter(i->i.getInstrumentType().equals("share"))
-                .findFirst().orElseThrow().getFigi();
+        String figi = getFigiForShare(ticker);
 
         var price = api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
 
@@ -101,14 +100,17 @@ public class SharesDataLoader {
     public Quotation getInstrumentPriceAsQuotation(String ticker){
         assert api != null;
 
-        String figi = api.getInstrumentsService().findInstrument(ticker)
-                .join().stream()
-                .filter(i->i.getFigi().startsWith("BBG00"))
-                .filter(i->i.getInstrumentType().equals("share"))
-                .findFirst().orElseThrow().getFigi();
+        String figi = getFigiForShare(ticker);
 
         return api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
     }
 
+    private String getFigiForShare(String ticker){
+        return api.getInstrumentsService().findInstrument(ticker)
+                .join().stream()
+                .filter(i->i.getFigi().startsWith("BBG00"))
+                .filter(i->i.getInstrumentType().equals("share"))
+                .findFirst().orElseThrow().getFigi();
+    }
 
 }

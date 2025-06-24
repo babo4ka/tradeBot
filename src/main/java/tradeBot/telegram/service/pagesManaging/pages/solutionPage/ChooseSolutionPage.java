@@ -11,10 +11,7 @@ import tradeBot.invest.shares.SharesDataLoader;
 import tradeBot.invest.TickersList;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.pagesManaging.interfaces.Page;
-import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
-import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Component

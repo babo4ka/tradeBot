@@ -30,8 +30,8 @@ public class TradeBot extends TelegramLongPollingBot {
 
     final BotConfig config;
 
-    @Autowired
-    InstrumentsDataSender instrumentsDataSender;
+//    @Autowired
+//    InstrumentsDataSender instrumentsDataSender;
 
     @Autowired
     SharesDataDistributor dataDistributor;
@@ -45,8 +45,8 @@ public class TradeBot extends TelegramLongPollingBot {
     @EventListener(ContextRefreshedEvent.class)
     private void setup() throws TelegramApiException, IOException {
         //instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
-        instrumentsDataSender.setEveryInstrumentsSender(this::sendToMe);
-        instrumentsDataSender.setCommonSender(this::sendMessageToChooseSolutions);
+//        instrumentsDataSender.setEveryInstrumentsSender(this::sendToMe);
+//        instrumentsDataSender.setCommonSender(this::sendMessageToChooseSolutions);
 
 
         dataDistributor.setSolutionsSender(this::sendSolutions);

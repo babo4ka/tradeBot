@@ -3,7 +3,6 @@ package tradeBot.invest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.ta4j.core.Strategy;
 import org.ta4j.core.TradingRecord;
 import org.ta4j.core.backtest.BarSeriesManager;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;

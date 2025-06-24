@@ -23,7 +23,6 @@ import tradeBot.commonUtils.Pair;
 import tradeBot.commonUtils.Triple;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
-import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextFileNCallback;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
@@ -108,7 +107,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "45 31 21 * * ?")
+    @Scheduled(cron = "45 0 10 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 

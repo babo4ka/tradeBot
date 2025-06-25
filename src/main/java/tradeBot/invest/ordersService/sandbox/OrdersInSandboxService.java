@@ -8,21 +8,16 @@ import ru.tinkoff.piapi.contract.v1.Quotation;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.SandboxService;
 import tradeBot.invest.configs.InvestConfig;
+import tradeBot.invest.ordersService.CommonOrdersService;
 import tradeBot.invest.shares.SharesDataLoader;
 
 import java.util.UUID;
 
 @Component
-public class OrdersInSandboxService {
-
-    InvestApi api;
-
-    InvestConfig config;
-
+public class OrdersInSandboxService extends CommonOrdersService {
 
     public OrdersInSandboxService(InvestConfig config){
-        this.config = config;
-
+        super(config);
         api = InvestApi.createSandbox(config.getSandboxToken());
     }
 

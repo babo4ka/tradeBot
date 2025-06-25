@@ -23,6 +23,8 @@ import tradeBot.commonUtils.Pair;
 import tradeBot.commonUtils.Triple;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
+import tradeBot.invest.ordersService.CommonOrdersService;
+import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextFileNCallback;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
@@ -59,6 +61,7 @@ public class SharesDataDistributor {
     @Autowired
     ApplicationContext context;
 
+    CommonOrdersService ordersService;
 
 
 
@@ -164,6 +167,28 @@ public class SharesDataDistributor {
                 sendToChat(ticker);
             }
         }
+    }
+
+    private void sendOrders(){
+
+        morningSolutions.keySet().stream().toList().forEach(s ->{
+            var solution = morningSolutions.get(s);
+            ordersService = new OrdersInSandboxService(investConfig);
+
+            if(solution.getSecond()){
+                switch (solution.getFirst()){
+                    case EXIT ->
+                        ordersService.postOrderToSell(SharesDataLoader.getFigiForShare(s, api),
+                                SharesDataLoader.getInstrumentPriceAsQuotation(s, api));
+
+                    case ENTER ->
+                        ordersService.postOrderToBuy(SharesDataLoader.getFigiForShare(s, api),
+                                solution.getThird(),
+                                SharesDataLoader.getInstrumentPriceAsQuotation(s, api));
+                }
+            }
+        });
+
     }
 
     public void sendToChat(String ticker) throws TelegramApiException {

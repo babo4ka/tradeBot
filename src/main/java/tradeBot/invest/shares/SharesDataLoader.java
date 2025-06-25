@@ -44,7 +44,7 @@ public class SharesDataLoader {
     public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to, CandleInterval interval){
         assert api != null;
 
-        String figi = getFigiForShare(ticker);
+        String figi = getFigiForShare(ticker, this.api);
 
         //oiss.postOrderToBuy(figi, 3, getInstrumentPriceAsQuotation(ticker));
         //oiss.postOrderToSell(figi, getInstrumentPriceAsQuotation(ticker));
@@ -90,22 +90,22 @@ public class SharesDataLoader {
     public double getInstrumentPrice(String ticker){
         assert api != null;
 
-        String figi = getFigiForShare(ticker);
+        String figi = getFigiForShare(ticker, this.api);
 
         var price = api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
 
         return price.getUnits() + price.getNano()/1e9;
     }
 
-    public Quotation getInstrumentPriceAsQuotation(String ticker){
+    public static Quotation getInstrumentPriceAsQuotation(String ticker, InvestApi api){
         assert api != null;
 
-        String figi = getFigiForShare(ticker);
+        String figi = getFigiForShare(ticker, api);
 
         return api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
     }
 
-    private String getFigiForShare(String ticker){
+    public static String getFigiForShare(String ticker, InvestApi api){
         return api.getInstrumentsService().findInstrument(ticker)
                 .join().stream()
                 .filter(i->i.getFigi().startsWith("BBG00"))

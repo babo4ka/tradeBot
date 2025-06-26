@@ -1,12 +1,14 @@
 package tradeBot.invest.ordersService.sandbox;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.piapi.contract.v1.Operation;
 import ru.tinkoff.piapi.contract.v1.OperationState;
 import ru.tinkoff.piapi.contract.v1.OperationType;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.SandboxService;
+import tradeBot.invest.ApiDistributor;
 import tradeBot.invest.configs.InvestConfig;
 
 import java.time.ZonedDateTime;
@@ -16,7 +18,8 @@ import java.util.List;
 @Component
 public class StatisticsInSandbox {
 
-    InvestApi api;
+    @Autowired
+    ApiDistributor apiDistributor;
 
     InvestConfig config;
 
@@ -24,12 +27,12 @@ public class StatisticsInSandbox {
     public StatisticsInSandbox(InvestConfig config){
         this.config = config;
 
-        api = InvestApi.createSandbox(config.getSandboxToken());
+        //api = InvestApi.createSandbox(config.getSandboxToken());
     }
 
 
     public double countShareProfitByTicker(String ticker){
-        String figi = api.getInstrumentsService().findInstrument(ticker)
+        String figi = apiDistributor.getApi().getInstrumentsService().findInstrument(ticker)
                 .join().stream()
                 .filter(i->i.getFigi().startsWith("BBG00"))
                 .filter(i->i.getInstrumentType().equals("share"))
@@ -40,7 +43,7 @@ public class StatisticsInSandbox {
 
 
     public double countShareProfitByFigi(String figi){
-        SandboxService sandboxService = api.getSandboxService();
+        SandboxService sandboxService = apiDistributor.getApi().getSandboxService();
         var accId = sandboxService.getAccounts().join().get(0).getId();
 
         ZonedDateTime now = ZonedDateTime.now();

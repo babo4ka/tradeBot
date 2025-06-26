@@ -1,8 +1,10 @@
 package tradeBot.invest.shares;
 
 
+import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -12,6 +14,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
 import org.ta4j.core.backtest.BarSeriesManager;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -21,12 +24,12 @@ import tradeBot.analyze.MAStrategyBuilder;
 import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
 import tradeBot.commonUtils.Pair;
 import tradeBot.commonUtils.Triple;
+import tradeBot.invest.ApiDistributor;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
 import tradeBot.invest.ordersService.CommonOrdersService;
-import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
 import tradeBot.telegram.configs.BotConfig;
-import tradeBot.telegram.service.functioonalInterfaces.SenderWithTextFileNCallback;
+import tradeBot.telegram.service.functioonalInterfaces.SenderWithMessage;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.visualize.StrategyVisualizer;
@@ -46,7 +49,7 @@ import java.util.Map;
 public class SharesDataDistributor {
 
     @Setter
-    private SenderWithTextFileNCallback solutionsSender;
+    private SenderWithMessage solutionsSender;
 
     private final MessageBuilder messageBuilder = new MessageBuilder();
     private InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
@@ -55,7 +58,10 @@ public class SharesDataDistributor {
     BotConfig tgBotConfig;
 
     final InvestConfig investConfig;
-    final InvestApi api;
+
+    @Autowired
+    ApiDistributor apiDistributor;
+
     final int maxCandlesCount = 200;
 
     @Autowired
@@ -63,6 +69,8 @@ public class SharesDataDistributor {
 
     CommonOrdersService ordersService;
 
+    @Autowired
+    SharesDataLoader sharesDataLoader;
 
 
     private final Map<String, Triple<SolutionType, Boolean, Integer>> morningSolutions = new HashMap<>();
@@ -71,8 +79,17 @@ public class SharesDataDistributor {
 
     public SolutionType getSolutionTypeByTicker(String ticker){ return morningSolutions.get(ticker).getFirst();}
 
+    @Getter
     public enum SolutionType{
-        ENTER, EXIT
+        ENTER("входим"),
+        EXIT("выходим");
+
+        private final String solution;
+
+        SolutionType(String solution){
+            this.solution = solution;
+        }
+
     }
 
 
@@ -82,10 +99,13 @@ public class SharesDataDistributor {
 
     public Pair<BarSeries, MACrossoverWithRSIStrategyData> getDataByTicker(String ticker) {return instrumentsInfo.get(ticker);}
 
-    //@Autowired
-    public SharesDataDistributor(InvestConfig config){
+
+    public SharesDataDistributor(InvestConfig config,
+                                 @Qualifier("OrdersInSandboxService") CommonOrdersService ordersService){
+
         this.investConfig = config;
-        api = InvestApi.create(config.getSandboxToken());
+        //api = InvestApi.create(config.getSandboxToken());
+        this.ordersService = ordersService;
     }
 
     @EventListener(ContextRefreshedEvent.class)
@@ -110,11 +130,11 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "45 0 10 * * ?")
+    @Scheduled(cron = "55 4 19 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
-        SharesDataLoader loader = context.getBean(SharesDataLoader.class);
+        //SharesDataLoader loader = context.getBean(SharesDataLoader.class);
 
         ZonedDateTime to = ZonedDateTime.now();
         ZonedDateTime from = to.minusDays(maxCandlesCount);
@@ -124,7 +144,7 @@ public class SharesDataDistributor {
         for(var ticker: TickersList.tickers){
             Pair<BarSeries, MACrossoverWithRSIStrategyData> data = instrumentsInfo.get(ticker);
 
-            var candles =  loader.loadCandlesData(ticker, from.toInstant(), to.toInstant(), CandleInterval.CANDLE_INTERVAL_DAY);
+            var candles =  sharesDataLoader.loadCandlesData(ticker, from.toInstant(), to.toInstant(), CandleInterval.CANDLE_INTERVAL_DAY);
             var candle = candles.get(candles.size()-1);
 
             Instant endTime = ZonedDateTime.ofInstant(
@@ -164,37 +184,56 @@ public class SharesDataDistributor {
                     morningSolutions.put(ticker, new Triple<>(SolutionType.EXIT, false, 0));
 
 
-                sendToChat(ticker);
+                sendSolutionToChat(ticker);
             }
         }
     }
 
+    @Scheduled(cron = "20 5 19 * * ?")
     private void sendOrders(){
 
-        morningSolutions.keySet().stream().toList().forEach(s ->{
-            var solution = morningSolutions.get(s);
-            ordersService = new OrdersInSandboxService(investConfig);
+        morningSolutions.keySet().stream().toList().forEach(ticker ->{
+            var solution = morningSolutions.get(ticker);
 
             if(solution.getSecond()){
                 switch (solution.getFirst()){
                     case EXIT ->
-                        ordersService.postOrderToSell(SharesDataLoader.getFigiForShare(s, api),
-                                SharesDataLoader.getInstrumentPriceAsQuotation(s, api));
+                        ordersService.postOrderToSell(SharesDataLoader.getFigiForShare(ticker, apiDistributor.getApi()),
+                                SharesDataLoader.getInstrumentPriceAsQuotation(ticker, apiDistributor.getApi()));
 
                     case ENTER ->
-                        ordersService.postOrderToBuy(SharesDataLoader.getFigiForShare(s, api),
+                        ordersService.postOrderToBuy(SharesDataLoader.getFigiForShare(ticker, apiDistributor.getApi()),
                                 solution.getThird(),
-                                SharesDataLoader.getInstrumentPriceAsQuotation(s, api));
+                                SharesDataLoader.getInstrumentPriceAsQuotation(ticker, apiDistributor.getApi()));
+                }
+
+                try {
+                    sendExecutedSolutionToChat(ticker,
+                            solution.getFirst().getSolution(),
+                            solution.getThird().longValue(),
+                            SharesDataLoader.getInstrumentPrice(ticker, apiDistributor.getApi()));
+
+                } catch (TelegramApiException e) {
+                    throw new RuntimeException(e);
                 }
             }
         });
 
+        morningSolutions.clear();
     }
 
-    public void sendToChat(String ticker) throws TelegramApiException {
+    private void sendExecutedSolutionToChat(String ticker, String solution, long quantity, double price) throws TelegramApiException {
+        String text = "По " + ticker + " выставлено " + quantity + " лотов на " + solution + " по " + price;
+
+        SendMessage sendMessage = messageBuilder.createTextMessage(null, tgBotConfig.getOwnerId(), text);
+
+        solutionsSender.send(sendMessage);
+    }
+
+    public void sendSolutionToChat(String ticker) throws TelegramApiException {
         String text = "";
 
-        SharesDataLoader loader = context.getBean(SharesDataLoader.class);
+        //SharesDataLoader loader = context.getBean(SharesDataLoader.class);
 
         keyboardBuilder = keyboardBuilder.reset();
 
@@ -208,9 +247,9 @@ public class SharesDataDistributor {
 
             if(solution.getSecond())
                 keyboardBuilder.addButton("Отменить решение", "/cancelSolution " + ticker)
-                        .addButton("Добрать позиции", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text).nextRow();
+                        .addButton("Добрать позиции", "/solution " + ticker + " " + SharesDataLoader.getInstrumentPrice(ticker, apiDistributor.getApi()) + " 1 " + text).nextRow();
             else
-                keyboardBuilder.addButton("Принять решение", "/solution " + ticker + " " + loader.getInstrumentPrice(ticker) + " 1 " + text)
+                keyboardBuilder.addButton("Принять решение", "/solution " + ticker + " " + SharesDataLoader.getInstrumentPrice(ticker, apiDistributor.getApi()) + " 1 " + text)
                         .nextRow();
         }
 

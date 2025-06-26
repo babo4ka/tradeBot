@@ -24,6 +24,9 @@ public class StrategiesSolutions {
     @Autowired
     ApplicationContext context;
 
+    @Autowired
+    ApiDistributor apiDistributor;
+
     public Map<String, Triple<String, ByteArrayOutputStream, Double>> sharesSolutions() throws IOException {
         SharesDataLoader dataLoader = context.getBean(SharesDataLoader.class);
         MAStrategyBuilder strategyBuilder = context.getBean(MAStrategyBuilder.class);
@@ -50,7 +53,7 @@ public class StrategiesSolutions {
                     strategyData.getStrategy().shouldEnter(barSeries.getEndIndex(), record) ? "входим" :
                             (strategyData.getStrategy().shouldExit(barSeries.getBeginIndex(), record) ? "выходим" : "ничего не делаем"),
                     strategyPicture,
-                    dataLoader.getInstrumentPrice(ticker)
+                    SharesDataLoader.getInstrumentPrice(ticker, apiDistributor.getApi())
             ));
 
 

@@ -39,7 +39,7 @@ public class ChooseSolutionPage implements Page {
 
     private List<PartialBotApiMethod<Message>> getMessages(Update update) throws TelegramApiException {
         for(var ticker: TickersList.tickers){
-            sharesDataDistributor.sendToChat(ticker);
+            sharesDataDistributor.sendSolutionToChat(ticker);
         }
         return null;
     }

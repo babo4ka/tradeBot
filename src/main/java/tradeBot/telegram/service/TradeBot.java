@@ -63,7 +63,11 @@ public class TradeBot extends TelegramLongPollingBot {
     }
 
     private void sendSolutions(PartialBotApiMethod<Message> message) throws TelegramApiException {
-        messagesDump.addMessage(execute((SendPhoto) message));
+        if(message instanceof SendMessage){
+            messagesDump.addMessage(execute((SendMessage) message));
+        }else if (message instanceof SendPhoto){
+            messagesDump.addMessage(execute((SendPhoto) message));
+        }
     }
 
     private void sendMessageToChooseSolutions(String[] tickers, double[] prices) throws TelegramApiException {

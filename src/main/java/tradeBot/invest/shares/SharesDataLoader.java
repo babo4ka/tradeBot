@@ -10,6 +10,7 @@ import ru.tinkoff.piapi.contract.v1.CandleInterval;
 import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 import ru.tinkoff.piapi.core.InvestApi;
+import tradeBot.invest.ApiDistributor;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
 import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
@@ -27,7 +28,8 @@ public class SharesDataLoader {
 
     final InvestConfig config;
 
-    InvestApi api;
+    @Autowired
+    ApiDistributor apiDistributor;
 
     @Autowired
     OrdersInSandboxService oiss;
@@ -38,20 +40,20 @@ public class SharesDataLoader {
     @Autowired
     public SharesDataLoader(InvestConfig config){
         this.config = config;
-        api = config.isSandbox()?InvestApi.createSandbox(config.getSandboxToken()):InvestApi.create(config.getUsualToken());
+        //api = config.isSandbox()?InvestApi.createSandbox(config.getSandboxToken()):InvestApi.create(config.getUsualToken());
     }
 
     public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to, CandleInterval interval){
-        assert api != null;
+        assert apiDistributor.getApi() != null;
 
-        String figi = getFigiForShare(ticker, this.api);
+        String figi = getFigiForShare(ticker, apiDistributor.getApi());
 
         //oiss.postOrderToBuy(figi, 3, getInstrumentPriceAsQuotation(ticker));
         //oiss.postOrderToSell(figi, getInstrumentPriceAsQuotation(ticker));
         System.out.println("profit for " + ticker + " " + sis.countShareProfitByFigi(figi));
 
 
-        return api.getMarketDataService().getCandles(figi,
+        return apiDistributor.getApi().getMarketDataService().getCandles(figi,
                 from, to, interval).join();
     }
 
@@ -87,10 +89,10 @@ public class SharesDataLoader {
     }
 
 
-    public double getInstrumentPrice(String ticker){
+    public static double getInstrumentPrice(String ticker, InvestApi api){
         assert api != null;
 
-        String figi = getFigiForShare(ticker, this.api);
+        String figi = getFigiForShare(ticker, api);
 
         var price = api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
 

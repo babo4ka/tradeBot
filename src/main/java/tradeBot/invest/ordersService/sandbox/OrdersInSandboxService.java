@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import ru.tinkoff.piapi.contract.v1.OrderDirection;
 import ru.tinkoff.piapi.contract.v1.OrderType;
 import ru.tinkoff.piapi.contract.v1.Quotation;
+import ru.tinkoff.piapi.contract.v1.TradesStreamRequest;
 import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.SandboxService;
 import tradeBot.invest.ApiDistributor;
@@ -13,6 +14,7 @@ import tradeBot.invest.configs.InvestConfig;
 import tradeBot.invest.ordersService.CommonOrdersService;
 import tradeBot.invest.shares.SharesDataLoader;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -31,9 +33,23 @@ public class OrdersInSandboxService extends CommonOrdersService {
         System.out.println(accId);
 
 
+        var stream = apiDistributor.getApi().getOrdersStreamService().subscribeTrades(
+                response -> {
+                    System.out.println("Sandbox Order Update: " + response);
+                    // Здесь можно обрабатывать изменения статуса заявки
+                },
+                throwable -> System.err.println("Stream error: " + throwable),
+                List.of(accId)
+        );
+
 
         var order = sandboxService.postOrder(figi, quantity, price,
                 OrderDirection.ORDER_DIRECTION_BUY, accId, OrderType.ORDER_TYPE_LIMIT, UUID.randomUUID().toString()).join();
+
+
+        System.out.println(order.getDirection());
+
+
     }
 
 

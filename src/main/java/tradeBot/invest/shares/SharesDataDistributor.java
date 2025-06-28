@@ -130,7 +130,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "55 4 19 * * ?")
+    @Scheduled(cron = "55 24 17 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
@@ -189,7 +189,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "20 5 19 * * ?")
+    @Scheduled(cron = "15 25 17 * * ?")
     private void sendOrders(){
 
         morningSolutions.keySet().stream().toList().forEach(ticker ->{

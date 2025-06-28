@@ -50,7 +50,7 @@ public class SharesDataLoader {
 
         //oiss.postOrderToBuy(figi, 3, getInstrumentPriceAsQuotation(ticker));
         //oiss.postOrderToSell(figi, getInstrumentPriceAsQuotation(ticker));
-        System.out.println("profit for " + ticker + " " + sis.countShareProfitByFigi(figi));
+        //System.out.println("profit for " + ticker + " " + sis.countShareProfitByFigi(figi));
 
 
         return apiDistributor.getApi().getMarketDataService().getCandles(figi,

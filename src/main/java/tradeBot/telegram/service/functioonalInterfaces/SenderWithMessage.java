@@ -7,5 +7,5 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @FunctionalInterface
 public interface SenderWithMessage {
 
-    void send(PartialBotApiMethod<Message> message) throws TelegramApiException;
+    void send(PartialBotApiMethod<Message> message, boolean markable) throws TelegramApiException;
 }

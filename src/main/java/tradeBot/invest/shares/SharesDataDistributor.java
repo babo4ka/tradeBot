@@ -19,7 +19,6 @@ import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import ru.tinkoff.piapi.contract.v1.CandleInterval;
-import ru.tinkoff.piapi.core.InvestApi;
 import tradeBot.analyze.MAStrategyBuilder;
 import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
 import tradeBot.commonUtils.Pair;
@@ -41,6 +40,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -49,7 +49,7 @@ import java.util.Map;
 public class SharesDataDistributor {
 
     @Setter
-    private SenderWithMessage solutionsSender;
+    private SenderWithMessage messagesSender;
 
     private final MessageBuilder messageBuilder = new MessageBuilder();
     private InlineKeyboardBuilder keyboardBuilder = new InlineKeyboardBuilder();
@@ -106,6 +106,8 @@ public class SharesDataDistributor {
         this.investConfig = config;
         //api = InvestApi.create(config.getSandboxToken());
         this.ordersService = ordersService;
+
+       // subscribeTrades();
     }
 
     @EventListener(ContextRefreshedEvent.class)
@@ -130,7 +132,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "55 24 17 * * ?")
+    @Scheduled(cron = "45 40 13 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
@@ -189,7 +191,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "15 25 17 * * ?")
+    @Scheduled(cron = "0 41 13 * * ?")
     private void sendOrders(){
 
         morningSolutions.keySet().stream().toList().forEach(ticker ->{
@@ -227,13 +229,11 @@ public class SharesDataDistributor {
 
         SendMessage sendMessage = messageBuilder.createTextMessage(null, tgBotConfig.getOwnerId(), text);
 
-        solutionsSender.send(sendMessage);
+        messagesSender.send(sendMessage, false);
     }
 
     public void sendSolutionToChat(String ticker) throws TelegramApiException {
         String text = "";
-
-        //SharesDataLoader loader = context.getBean(SharesDataLoader.class);
 
         keyboardBuilder = keyboardBuilder.reset();
 
@@ -259,7 +259,7 @@ public class SharesDataDistributor {
                 new InputFile(new ByteArrayInputStream(currentPicByTicker.get(ticker).toByteArray()), "file"));
 
 
-        solutionsSender.send(message);
+        messagesSender.send(message, true);
     }
 
 
@@ -278,7 +278,28 @@ public class SharesDataDistributor {
         }
     }
 
-//    private void reloadData(){
-//        loadData();
-//    }
+
+    @EventListener(ContextRefreshedEvent.class)
+    private void subscribeTrades(){
+        apiDistributor.getApi().getOrdersStreamService().subscribeTrades(
+                response -> {
+                    System.out.println("Sandbox Order Update: " + response);
+                    response.getOrderTrades().getTradesList().forEach(orderTrade -> {
+                        String text = "Исполнено по " + response.getOrderTrades().getFigi() + " в количестве " + orderTrade.getQuantity()
+                                + " по " + (orderTrade.getPrice().getUnits() + orderTrade.getPrice().getNano()/1e9);
+
+                        SendMessage message = messageBuilder.createTextMessage(null, tgBotConfig.getOwnerId(), text);
+
+                        try {
+                            messagesSender.send(message, false);
+                        } catch (TelegramApiException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+
+                },
+                throwable -> System.err.println("Stream error: " + throwable),
+                List.of(investConfig.isSandbox()?investConfig.getSandboxAcc():investConfig.getUsualAcc())
+        );
+    }
 }

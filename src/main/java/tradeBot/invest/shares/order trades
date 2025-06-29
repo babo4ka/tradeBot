@@ -1,0 +1,23 @@
+Sandbox Order Update: order_trades {
+  order_id: "7c078275-4c29-43c8-96fd-d1d70b46223e"
+  created_at {
+    seconds: 1751193085
+    nanos: 387236000
+  }
+  direction: ORDER_DIRECTION_BUY
+  figi: "BBG004730JJ5"
+  trades {
+    date_time {
+      seconds: 1751193085
+      nanos: 387236000
+    }
+    price {
+      units: 199
+      nano: 780000000
+    }
+    quantity: 20
+    trade_id: "d14e257f-cbb8-4383-8728-0a8f5836e1e8"
+  }
+  account_id: "45bb750f-0b56-4c0c-b84c-88d7d60de5a0"
+  instrument_uid: "5e1c2634-afc4-4e50-ad6d-f78fc14a539a"
+}

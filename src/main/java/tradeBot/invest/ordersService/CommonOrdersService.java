@@ -9,7 +9,7 @@ public abstract class CommonOrdersService {
 
     protected ApiDistributor apiDistributor;
 
-    InvestConfig config;
+    protected InvestConfig config;
 
     public CommonOrdersService(InvestConfig config, ApiDistributor apiDistributor){
         this.config = config;

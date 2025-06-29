@@ -23,24 +23,23 @@ public class OrdersInSandboxService extends CommonOrdersService {
 
     public OrdersInSandboxService(InvestConfig config, ApiDistributor apiDistributor){
         super(config, apiDistributor);
-        //api = InvestApi.createSandbox(config.getSandboxToken());
     }
+
 
     public void postOrderToBuy(String figi, long quantity, Quotation price){
         SandboxService sandboxService = apiDistributor.getApi().getSandboxService();
 
-        var accId = sandboxService.getAccounts().join().get(0).getId();
-        System.out.println(accId);
+        var accId = config.isSandbox()?config.getSandboxAcc():config.getUsualAcc();
 
 
-        var stream = apiDistributor.getApi().getOrdersStreamService().subscribeTrades(
-                response -> {
-                    System.out.println("Sandbox Order Update: " + response);
-                    // Здесь можно обрабатывать изменения статуса заявки
-                },
-                throwable -> System.err.println("Stream error: " + throwable),
-                List.of(accId)
-        );
+//        var stream = apiDistributor.getApi().getOrdersStreamService().subscribeTrades(
+//                response -> {
+//                    System.out.println("Sandbox Order Update: " + response);
+//                    // Здесь можно обрабатывать изменения статуса заявки
+//                },
+//                throwable -> System.err.println("Stream error: " + throwable),
+//                List.of(accId)
+//        );
 
 
         var order = sandboxService.postOrder(figi, quantity, price,
@@ -56,8 +55,7 @@ public class OrdersInSandboxService extends CommonOrdersService {
     public void postOrderToSell(String figi, Quotation price){
         SandboxService sandboxService = apiDistributor.getApi().getSandboxService();
 
-        var accId = sandboxService.getAccounts().join().get(0).getId();
-        System.out.println(accId);
+        var accId = config.isSandbox()?config.getSandboxAcc():config.getUsualAcc();
 
         var quantity = sandboxService
                 .getPortfolio(accId).join()

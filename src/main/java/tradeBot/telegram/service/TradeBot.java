@@ -1,6 +1,5 @@
 package tradeBot.telegram.service;
 
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
@@ -13,10 +12,8 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
 import tradeBot.invest.shares.SharesDataDistributor;
 import tradeBot.telegram.configs.BotConfig;
-import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.MessageBuilder;
 import tradeBot.telegram.service.pagesManaging.pageUtils.PageManager;
 import tradeBot.telegram.service.utils.MessagesDump;
@@ -49,7 +46,7 @@ public class TradeBot extends TelegramLongPollingBot {
 //        instrumentsDataSender.setCommonSender(this::sendMessageToChooseSolutions);
 
 
-        dataDistributor.setSolutionsSender(this::sendSolutions);
+        dataDistributor.setMessagesSender(this::sendMessages);
     }
 
     public TradeBot(BotConfig config){
@@ -62,11 +59,14 @@ public class TradeBot extends TelegramLongPollingBot {
         messagesDump.addMessage(execute(builder.createPhotoMessage(null, config.getOwnerId(), text, file)));
     }
 
-    private void sendSolutions(PartialBotApiMethod<Message> message) throws TelegramApiException {
+    private void sendMessages(PartialBotApiMethod<Message> message, boolean markable) throws TelegramApiException {
+        Message msg;
         if(message instanceof SendMessage){
-            messagesDump.addMessage(execute((SendMessage) message));
+            msg = execute((SendMessage) message);
+            if(markable) messagesDump.addMessage(msg);
         }else if (message instanceof SendPhoto){
-            messagesDump.addMessage(execute((SendPhoto) message));
+            msg = execute((SendPhoto) message);
+            if(markable) messagesDump.addMessage(msg);
         }
     }
 

@@ -40,18 +40,12 @@ public class SharesDataLoader {
     @Autowired
     public SharesDataLoader(InvestConfig config){
         this.config = config;
-        //api = config.isSandbox()?InvestApi.createSandbox(config.getSandboxToken()):InvestApi.create(config.getUsualToken());
     }
 
     public List<HistoricCandle> loadCandlesData(String ticker, Instant from, Instant to, CandleInterval interval){
         assert apiDistributor.getApi() != null;
 
         String figi = getFigiForShare(ticker, apiDistributor.getApi());
-
-        //oiss.postOrderToBuy(figi, 3, getInstrumentPriceAsQuotation(ticker));
-        //oiss.postOrderToSell(figi, getInstrumentPriceAsQuotation(ticker));
-        //System.out.println("profit for " + ticker + " " + sis.countShareProfitByFigi(figi));
-
 
         return apiDistributor.getApi().getMarketDataService().getCandles(figi,
                 from, to, interval).join();
@@ -115,4 +109,7 @@ public class SharesDataLoader {
                 .findFirst().orElseThrow().getFigi();
     }
 
+    public static String getTickerByFigi(String figi, InvestApi api){
+        return api.getInstrumentsService().findInstrument(figi).join().get(0).getTicker();
+    }
 }

@@ -29,7 +29,7 @@ public class OrdersInSandboxService extends CommonOrdersService {
     public void postOrderToBuy(String figi, long quantity, Quotation price){
         SandboxService sandboxService = apiDistributor.getApi().getSandboxService();
 
-        var accId = config.isSandbox()?config.getSandboxAcc():config.getUsualAcc();
+        var accId = config.getSandboxAcc();
 
 
 //        var stream = apiDistributor.getApi().getOrdersStreamService().subscribeTrades(
@@ -55,7 +55,7 @@ public class OrdersInSandboxService extends CommonOrdersService {
     public void postOrderToSell(String figi, Quotation price){
         SandboxService sandboxService = apiDistributor.getApi().getSandboxService();
 
-        var accId = config.isSandbox()?config.getSandboxAcc():config.getUsualAcc();
+        var accId = config.getSandboxAcc();
 
         var quantity = sandboxService
                 .getPortfolio(accId).join()

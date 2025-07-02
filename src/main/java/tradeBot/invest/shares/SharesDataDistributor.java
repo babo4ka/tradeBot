@@ -27,6 +27,7 @@ import tradeBot.invest.ApiDistributor;
 import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
 import tradeBot.invest.ordersService.CommonOrdersService;
+import tradeBot.invest.ordersService.CommonStatisticsService;
 import tradeBot.telegram.configs.BotConfig;
 import tradeBot.telegram.service.functioonalInterfaces.SenderWithMessage;
 import tradeBot.telegram.service.pagesManaging.pageUtils.InlineKeyboardBuilder;
@@ -39,6 +40,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,8 @@ public class SharesDataDistributor {
     ApplicationContext context;
 
     CommonOrdersService ordersService;
+
+    CommonStatisticsService statisticsService;
 
     @Autowired
     SharesDataLoader sharesDataLoader;
@@ -101,13 +105,12 @@ public class SharesDataDistributor {
 
 
     public SharesDataDistributor(InvestConfig config,
-                                 @Qualifier("OrdersInSandboxService") CommonOrdersService ordersService){
+                                 @Qualifier("OrdersInSandboxService") CommonOrdersService ordersService,
+                                 @Qualifier("StatisticsInSandboxService") CommonStatisticsService statisticsService){
 
         this.investConfig = config;
-        //api = InvestApi.create(config.getSandboxToken());
         this.ordersService = ordersService;
-
-       // subscribeTrades();
+        this.statisticsService = statisticsService;
     }
 
     @EventListener(ContextRefreshedEvent.class)
@@ -132,7 +135,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "45 40 13 * * ?")
+    @Scheduled(cron = "55 2 22 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
@@ -191,7 +194,7 @@ public class SharesDataDistributor {
         }
     }
 
-    @Scheduled(cron = "0 41 13 * * ?")
+    @Scheduled(cron = "10 3 22 * * ?")
     private void sendOrders(){
 
         morningSolutions.keySet().stream().toList().forEach(ticker ->{
@@ -285,7 +288,9 @@ public class SharesDataDistributor {
                 response -> {
                     System.out.println("Sandbox Order Update: " + response);
                     response.getOrderTrades().getTradesList().forEach(orderTrade -> {
-                        String text = "Исполнено по " + response.getOrderTrades().getFigi() + " в количестве " + orderTrade.getQuantity()
+                        String ticker = SharesDataLoader.getTickerByFigi(response.getOrderTrades().getFigi(), apiDistributor.getApi());
+
+                        String text = "Исполнено по " + ticker + " в количестве " + orderTrade.getQuantity()
                                 + " по " + (orderTrade.getPrice().getUnits() + orderTrade.getPrice().getNano()/1e9);
 
                         SendMessage message = messageBuilder.createTextMessage(null, tgBotConfig.getOwnerId(), text);
@@ -301,5 +306,24 @@ public class SharesDataDistributor {
                 throwable -> System.err.println("Stream error: " + throwable),
                 List.of(investConfig.isSandbox()?investConfig.getSandboxAcc():investConfig.getUsualAcc())
         );
+    }
+
+
+    @Scheduled(cron = "0 3 22 * * ?")
+    private void sendProfitInfo(){
+
+        Arrays.stream(TickersList.tickers).toList().forEach(ticker -> {
+            double profit = statisticsService.countShareProfitByTicker(ticker);
+
+            String text = "Профит по " + ticker + " " + profit + " рублей";
+
+            SendMessage message = messageBuilder.createTextMessage(null, tgBotConfig.getOwnerId(), text);
+
+            try {
+                messagesSender.send(message, false);
+            } catch (TelegramApiException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

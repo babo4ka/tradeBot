@@ -2,6 +2,7 @@ package tradeBot.invest.ordersService.sandbox;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import ru.tinkoff.piapi.contract.v1.Operation;
 import ru.tinkoff.piapi.contract.v1.OperationState;
@@ -10,24 +11,19 @@ import ru.tinkoff.piapi.core.InvestApi;
 import ru.tinkoff.piapi.core.SandboxService;
 import tradeBot.invest.ApiDistributor;
 import tradeBot.invest.configs.InvestConfig;
+import tradeBot.invest.ordersService.CommonStatisticsService;
+import tradeBot.invest.ordersService.TradeInfo;
 
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class StatisticsInSandbox {
+@Qualifier("StatisticsInSandboxService")
+public class StatisticsInSandbox extends CommonStatisticsService {
 
-    @Autowired
-    ApiDistributor apiDistributor;
-
-    InvestConfig config;
-
-
-    public StatisticsInSandbox(InvestConfig config){
-        this.config = config;
-
-        //api = InvestApi.createSandbox(config.getSandboxToken());
+    public StatisticsInSandbox(InvestConfig config, ApiDistributor apiDistributor){
+        super(config, apiDistributor);
     }
 
 
@@ -44,7 +40,7 @@ public class StatisticsInSandbox {
 
     public double countShareProfitByFigi(String figi){
         SandboxService sandboxService = apiDistributor.getApi().getSandboxService();
-        var accId = sandboxService.getAccounts().join().get(0).getId();
+        var accId = config.getSandboxAcc();
 
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime from = now.minusYears(1);
@@ -54,11 +50,12 @@ public class StatisticsInSandbox {
                 .getOperations(accId, from.toInstant(), now.toInstant(), OperationState.OPERATION_STATE_EXECUTED, figi).join()
                 .stream().filter(operation -> operation.getOperationType().equals(OperationType.OPERATION_TYPE_BUY) || operation.getOperationType().equals(OperationType.OPERATION_TYPE_SELL)).toList();
 
-        double profit = 0;
 
 
         if(operations.stream().noneMatch(operation -> operation.getOperationType().equals(OperationType.OPERATION_TYPE_SELL))) return -1;
 
+
+        double profit = 0;
         int index = 0;
 
         while(index < operations.size()-1){
@@ -81,6 +78,7 @@ public class StatisticsInSandbox {
             double buysSum = subList.stream().mapToDouble(op -> (op.getPrice().getUnits() + op.getPrice().getNano()/1e9)).sum();
 
             double sellsSum = closeOperation.getPrice().getUnits() + closeOperation.getPrice().getNano()/1e9;
+
 
             profit += sellsSum - buysSum;
 

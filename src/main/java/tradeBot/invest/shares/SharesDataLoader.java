@@ -1,5 +1,6 @@
 package tradeBot.invest.shares;
 
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.ta4j.core.BarSeries;
@@ -11,16 +12,14 @@ import ru.tinkoff.piapi.contract.v1.HistoricCandle;
 import ru.tinkoff.piapi.contract.v1.Quotation;
 import ru.tinkoff.piapi.core.InvestApi;
 import tradeBot.invest.ApiDistributor;
-import tradeBot.invest.TickersList;
 import tradeBot.invest.configs.InvestConfig;
-import tradeBot.invest.ordersService.sandbox.OrdersInSandboxService;
-import tradeBot.invest.ordersService.sandbox.StatisticsInSandbox;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -31,11 +30,6 @@ public class SharesDataLoader {
     @Autowired
     ApiDistributor apiDistributor;
 
-    @Autowired
-    OrdersInSandboxService oiss;
-
-    @Autowired
-    StatisticsInSandbox sis;
 
     @Autowired
     public SharesDataLoader(InvestConfig config){
@@ -47,8 +41,10 @@ public class SharesDataLoader {
 
         String figi = getFigiForShare(ticker, apiDistributor.getApi());
 
-        return apiDistributor.getApi().getMarketDataService().getCandles(figi,
+        var unMutableList = apiDistributor.getApi().getMarketDataService().getCandles(figi,
                 from, to, interval).join();
+
+        return new ArrayList<>(unMutableList);
     }
 
     public BarSeries getBarSeries(String ticker, List<HistoricCandle> candles, CandleInterval interval, int maxBars){
@@ -82,10 +78,22 @@ public class SharesDataLoader {
         return series;
     }
 
+    public boolean hasInstrument(String ticker){
+        assert apiDistributor.getApi() != null;
 
-    public static double getInstrumentPrice(String ticker, InvestApi api){
-        assert api != null;
+        String figi = getFigiForShare(ticker, apiDistributor.getApi());
 
+        var sandBoxService = apiDistributor.getApi().getSandboxService();
+        var portfolio = sandBoxService.getPortfolio(config.getSandboxAcc()).join();
+        for(var pos: portfolio.getPositionsList()){
+            if(pos.getFigi().equals(figi)) return true;
+        }
+
+        return false;
+    }
+
+
+    public static double getInstrumentPrice(String ticker, @NonNull InvestApi api){
         String figi = getFigiForShare(ticker, api);
 
         var price = api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
@@ -93,23 +101,17 @@ public class SharesDataLoader {
         return price.getUnits() + price.getNano()/1e9;
     }
 
-    public static Quotation getInstrumentPriceAsQuotation(String ticker, InvestApi api){
-        assert api != null;
-
+    public static Quotation getInstrumentPriceAsQuotation(String ticker, @NonNull InvestApi api){
         String figi = getFigiForShare(ticker, api);
 
         return api.getMarketDataService().getLastPrices(List.of(figi)).join().get(0).getPrice();
     }
 
-    public static String getFigiForShare(String ticker, InvestApi api){
-        return api.getInstrumentsService().findInstrument(ticker)
-                .join().stream()
-                .filter(i->i.getFigi().startsWith("BBG00"))
-                .filter(i->i.getInstrumentType().equals("share"))
-                .findFirst().orElseThrow().getFigi();
+    public static String getFigiForShare(String ticker, @NonNull InvestApi api){
+        return api.getInstrumentsService().getShareByTicker(ticker, "TQBR").join().getFigi();
     }
 
-    public static String getTickerByFigi(String figi, InvestApi api){
+    public static String getTickerByFigi(String figi, @NonNull InvestApi api){
         return api.getInstrumentsService().findInstrument(figi).join().get(0).getTicker();
     }
 }

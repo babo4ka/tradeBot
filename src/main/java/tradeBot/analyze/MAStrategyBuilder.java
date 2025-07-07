@@ -9,6 +9,8 @@ import org.ta4j.core.indicators.averages.EMAIndicator;
 import org.ta4j.core.indicators.averages.SMAIndicator;
 import org.ta4j.core.indicators.helpers.ClosePriceIndicator;
 import org.ta4j.core.num.DecimalNum;
+import org.ta4j.core.rules.CrossedDownIndicatorRule;
+import org.ta4j.core.rules.CrossedUpIndicatorRule;
 import org.ta4j.core.rules.OverIndicatorRule;
 import org.ta4j.core.rules.UnderIndicatorRule;
 import tradeBot.analyze.entities.MACrossoverWithRSIStrategyData;
@@ -24,12 +26,12 @@ public class MAStrategyBuilder {
 
         RSIIndicator rsiIndicator = new RSIIndicator(closePrice, rsiCount);
 
-        Rule entryRule = new OverIndicatorRule(shortEMA, longEMA)
+        Rule entryRule = new CrossedUpIndicatorRule(shortEMA, longEMA)
                 .and(new OverIndicatorRule(rsiIndicator, DecimalNum.valueOf(50)));
 
-        Rule exitRule = new UnderIndicatorRule(shortEMA, longEMA)
-                .or(new OverIndicatorRule(rsiIndicator, DecimalNum.valueOf(70)))
-                .or(new UnderIndicatorRule(rsiIndicator, DecimalNum.valueOf(50)));
+        Rule exitRule = new CrossedDownIndicatorRule(shortEMA, longEMA)
+                .or(new CrossedUpIndicatorRule(rsiIndicator, DecimalNum.valueOf(70)))
+                .or(new CrossedDownIndicatorRule(rsiIndicator, DecimalNum.valueOf(50)));
 
 
         return MACrossoverWithRSIStrategyData.builder()

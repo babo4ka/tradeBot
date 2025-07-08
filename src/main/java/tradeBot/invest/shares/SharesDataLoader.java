@@ -83,10 +83,18 @@ public class SharesDataLoader {
 
         String figi = getFigiForShare(ticker, apiDistributor.getApi());
 
-        var sandBoxService = apiDistributor.getApi().getSandboxService();
-        var portfolio = sandBoxService.getPortfolio(config.getSandboxAcc()).join();
-        for(var pos: portfolio.getPositionsList()){
-            if(pos.getFigi().equals(figi)) return true;
+        if(config.isSandbox()){
+            var sandBoxService = apiDistributor.getApi().getSandboxService();
+            var portfolio = sandBoxService.getPortfolio(config.getSandboxAcc()).join();
+            for(var pos: portfolio.getPositionsList()){
+                if(pos.getFigi().equals(figi)) return true;
+            }
+        }else {
+            var operationsService = apiDistributor.getApi().getOperationsService();
+            var portfolio = operationsService.getPortfolio(config.getUsualAcc()).join();
+            for(var pos: portfolio.getPositions()){
+                if(pos.getFigi().equals(figi)) return true;
+            }
         }
 
         return false;

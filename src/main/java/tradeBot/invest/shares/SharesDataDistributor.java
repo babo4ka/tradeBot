@@ -43,10 +43,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 @EnableScheduling
@@ -140,8 +137,8 @@ public class SharesDataDistributor {
     }
 
 
-    //@Scheduled(cron = "59 59 23 * * ?")
-    @Scheduled(cron = "20 36 23 * * ?")
+    @Scheduled(cron = "59 59 23 * * ?", zone = "Europe/Moscow")
+    //@Scheduled(cron = "20 36 23 * * ?")
     private void update() throws IOException, TelegramApiException {
         morningSolutions.clear();
 
@@ -211,8 +208,8 @@ public class SharesDataDistributor {
 
     }
 
-    //@Scheduled(cron = "0 0 7 * * ?")
-    @Scheduled(cron = "50 36 23 * * ?")
+    @Scheduled(cron = "0 0 7 * * ?", zone = "Europe/Moscow")
+    //@Scheduled(cron = "50 36 23 * * ?")
     private void sendOrders(){
 
         morningSolutions.keySet().stream().toList().forEach(ticker ->{
@@ -245,8 +242,8 @@ public class SharesDataDistributor {
         morningSolutions.clear();
     }
 
-    //@Scheduled(cron = "0 30 0 * * ?")
-    @Scheduled(cron = "25 36 23 * * ?")
+    @Scheduled(cron = "0 30 0 * * ?", zone = "Europe/Moscow")
+    //@Scheduled(cron = "25 36 23 * * ?")
     private void sendProfitInfo(){
 
         Arrays.stream(TickersList.tickers).toList().forEach(ticker -> {

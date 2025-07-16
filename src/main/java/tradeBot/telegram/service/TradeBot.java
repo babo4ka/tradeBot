@@ -3,6 +3,8 @@ package tradeBot.telegram.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.PartialBotApiMethod;
@@ -23,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
+@EnableScheduling
 public class TradeBot extends TelegramLongPollingBot {
 
     final BotConfig config;
@@ -41,11 +44,6 @@ public class TradeBot extends TelegramLongPollingBot {
 
     @EventListener(ContextRefreshedEvent.class)
     private void setup() throws TelegramApiException, IOException {
-        //instrumentsDataSender.send(this::sendToMe, this::sendMessageToChooseSolutions);
-//        instrumentsDataSender.setEveryInstrumentsSender(this::sendToMe);
-//        instrumentsDataSender.setCommonSender(this::sendMessageToChooseSolutions);
-
-
         dataDistributor.setMessagesSender(this::sendMessages);
     }
 
@@ -171,6 +169,11 @@ public class TradeBot extends TelegramLongPollingBot {
         }
     }
 
+
+    @Scheduled(cron = "0 0 7 * * ?", zone = "Europe/Moscow")
+    private void clearDump(){
+        messagesDump.clearDump();
+    }
 
     private void deletePreviousMessages() throws TelegramApiException {
         for(var message: messagesDump.getMessagesToDelete()){
